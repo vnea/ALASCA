@@ -27,9 +27,7 @@ import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
 import fr.upmc.datacenterclient.requestgenerator.RequestGenerator;
 import fr.upmc.datacenterclient.requestgenerator.connectors.RequestGeneratorManagementConnector;
 import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagementOutboundPort;
-import fr.upmc.datacenterclient.tests.TestRequestGenerator;
 import fr.upmc.requestdispatcher.RequestDispatcher;
-import fr.upmc.requestdispatcher.connectors.RequestDispatcherManagementConnector;
 import fr.upmc.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
 
 /**
@@ -264,15 +262,15 @@ extends		AbstractCVM
 					RdRequestNotificationInboundPortURI,
 					RequestNotificationConnector.class.getCanonicalName()) ;
 		
-		// Create a mock up port to manage the AVM component (allocate cores).
-		this.rdmop = new RequestDispatcherManagementOutboundPort(
-									RequestDispatcherManagementOutboundPortURI,
-									new AbstractComponent() {}) ;
-		this.rdmop.publishPort() ;
-		this.rdmop.
-				doConnection(
-					RequestDispatcherManagementInboundPortURI,
-					RequestDispatcherManagementConnector.class.getCanonicalName()) ;
+//		// Create a mock up port to manage the AVM component (allocate cores).
+//		this.rdmop = new RequestDispatcherManagementOutboundPort(
+//									RequestDispatcherManagementOutboundPortURI,
+//									new AbstractComponent() {}) ;
+//		this.rdmop.publishPort() ;
+//		this.rdmop.
+//				doConnection(
+//					RequestDispatcherManagementInboundPortURI,
+//					RequestDispatcherManagementConnector.class.getCanonicalName()) ;
 
 		// Toggle on tracing and logging in the application virtual machine to
 		// follow the execution of individual requests.

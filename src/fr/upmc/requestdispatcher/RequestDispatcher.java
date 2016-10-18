@@ -11,7 +11,6 @@ import fr.upmc.datacenter.software.ports.RequestNotificationInboundPort;
 import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionInboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
-import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagementInboundPort;
 import fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI;
 import fr.upmc.requestdispatcher.ports.RequestDispatcherManagementInboundPort;
 
@@ -244,7 +243,7 @@ implements	RequestNotificationHandlerI,
 	throws Exception
 	{
 		assert	r != null ;
-
+		this.logMessage("Request Dispatcher " + this.dispatcherURI + " is notified that request "+ r.getRequestURI() + " has ended.") ;
 		this.requestNotificationOutboundPort.notifyRequestTermination(r) ;
 	}
 
@@ -254,7 +253,7 @@ implements	RequestNotificationHandlerI,
 	@Override
 	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {	
 		// Submit the current request.
-		this.logMessage("Request Dispatcher " + this.dispatcherURI + " is notified that request "+ r.getRequestURI() + " has ended.") ;
+		this.logMessage("Request Dispatcher " + this.dispatcherURI + " has received "+ r.getRequestURI()+".") ;
 		this.requestSubmissionOutboundPort.submitRequestAndNotify(r) ;
 	}
 }
