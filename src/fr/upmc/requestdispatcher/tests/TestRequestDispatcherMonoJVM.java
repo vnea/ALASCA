@@ -236,13 +236,27 @@ extends		AbstractCVM
 		// Create an Request Dispatcher component
 		// --------------------------------------------------------------------
 		RequestDispatcher rd = 
-				new RequestDispatcher("rd",	// application rd component URI
+				new RequestDispatcher("rd",	// application rd component URI,
+									  RequestDispatcherManagementInboundPortURI,
 									  RdRequestSubmissionInboundPortURI,
 									  RdRequestNotificationOutboundPortURI,
 									  RdRequestSubmissionOutboundPortURI,
 									  RdRequestNotificationInboundPortURI);
 		this.addDeployedComponent(rd) ;
+		
+		this.rsobp =
+				(RequestSubmissionOutboundPort) rd.findPortFromURI(
+											RdRequestSubmissionOutboundPortURI) ;
+		rsobp.doConnection(
+				VmRequestSubmissionInboundPortURI,
+				RequestSubmissionConnector.class.getCanonicalName()) ;
 
+		this.nobp =
+			(RequestNotificationOutboundPort) vm.findPortFromURI(
+										VmRequestNotificationOutboundPortURI) ;
+		nobp.doConnection(
+					RdRequestNotificationInboundPortURI,
+					RequestNotificationConnector.class.getCanonicalName()) ;
 		
 		// Create a mock up port to manage the AVM component (allocate cores).
 		this.rdmop = new RequestDispatcherManagementOutboundPort(
@@ -290,12 +304,12 @@ extends		AbstractCVM
 			(RequestSubmissionOutboundPort) rg.findPortFromURI(
 										RgRequestSubmissionOutboundPortURI) ;
 		rsobp.doConnection(
-				VmRequestSubmissionInboundPortURI,
+				RdRequestSubmissionInboundPortURI,
 				RequestSubmissionConnector.class.getCanonicalName()) ;
 
 		this.nobp =
-			(RequestNotificationOutboundPort) vm.findPortFromURI(
-										VmRequestNotificationOutboundPortURI) ;
+			(RequestNotificationOutboundPort) rd.findPortFromURI(
+										RdRequestNotificationOutboundPortURI) ;
 		nobp.doConnection(
 				RgRequestNotificationInboundPortURI,
 				RequestNotificationConnector.class.getCanonicalName()) ;

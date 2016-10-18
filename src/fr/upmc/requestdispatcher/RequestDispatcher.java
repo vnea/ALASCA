@@ -11,6 +11,9 @@ import fr.upmc.datacenter.software.ports.RequestNotificationInboundPort;
 import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionInboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
+import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagementInboundPort;
+import fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI;
+import fr.upmc.requestdispatcher.ports.RequestDispatcherManagementInboundPort;
 
 /**
  * The class <code>RequestDispatcher</code> implements the component representing
@@ -74,6 +77,9 @@ implements	RequestNotificationHandlerI,
 	/** URI of this dispatcher.											*/
 	protected String						dispatcherURI ;
 	
+	protected RequestDispatcherManagementInboundPort rdmip ;
+
+	
 	/** Inbound port offering the request submission service of the VM.		*/
 	protected RequestSubmissionInboundPort	requestSubmissionInboundPort ;
 	/** Outbound port used by the VM to notify tasks' termination.			*/
@@ -118,6 +124,7 @@ implements	RequestNotificationHandlerI,
 	 */
 	public				RequestDispatcher(
 		String dispatcherURI,
+		String managementInboundPortURI,
 		String requestSubmissionInboundPortURI,
 		String requestNotificationOutboundPortURI,
 		String requestSubmissionOutboundPortURI,
@@ -131,6 +138,7 @@ implements	RequestNotificationHandlerI,
 
 		// Preconditions
 		assert dispatcherURI != null ;
+		assert managementInboundPortURI != null ;
 		assert requestSubmissionInboundPortURI != null ;
 		assert requestNotificationOutboundPortURI != null ;
 		assert requestSubmissionOutboundPort != null ;
@@ -140,6 +148,10 @@ implements	RequestNotificationHandlerI,
 		this.dispatcherURI = dispatcherURI ;
 
 		// Interfaces and ports
+		this.addOfferedInterface(RequestDispatcherManagementI.class) ;
+		this.rdmip = new RequestDispatcherManagementInboundPort(
+												managementInboundPortURI, this) ;
+		
 		this.addOfferedInterface(RequestSubmissionI.class) ;
 		this.requestSubmissionInboundPort =
 						new RequestSubmissionInboundPort(
@@ -240,6 +252,9 @@ implements	RequestNotificationHandlerI,
 	 * @see fr.upmc.datacenter.software.interfaces.RequestSubmissionHandlerI#acceptRequestSubmissionAndNotify(fr.upmc.datacenter.software.interfaces.RequestI)
 	 */
 	@Override
-	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {		
+	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {	
+		// Submit the current request.
+		this.logMessage("Request Dispatcher " + this.dispatcherURI + " is notified that request "+ r.getRequestURI() + " has ended.") ;
+		this.requestSubmissionOutboundPort.submitRequestAndNotify(r) ;
 	}
 }
