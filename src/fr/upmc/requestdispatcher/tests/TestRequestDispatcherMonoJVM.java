@@ -109,12 +109,18 @@ extends		AbstractCVM
 	protected ComputerDynamicStateDataOutboundPort		cdsPort ;
 	/** Port connected to the AVM component to allocate it cores.			*/
 	protected ApplicationVMManagementOutboundPort		avmPort ;
-	/** Port of the request generator component sending requests to the
+	/** Port of the request dispatcher component sending requests to the
 	 *  AVM component.														*/
-	protected RequestSubmissionOutboundPort				rsobp ;
+	protected RequestSubmissionOutboundPort				rdrsobp ;
+	/** Port of the request dispatcher component used to receive end of
+	 *  execution notifications from the AVM component.						*/
+	protected RequestNotificationOutboundPort			rdnobp ;
+	/** Port connected to the request generator component to manage its
+	 *  execution (starting and stopping the request generation).			*/
+	protected RequestSubmissionOutboundPort				rgrsobp ;
 	/** Port of the request generator component used to receive end of
 	 *  execution notifications from the AVM component.						*/
-	protected RequestNotificationOutboundPort			nobp ;
+	protected RequestNotificationOutboundPort			rgnobp ;
 	/** Port connected to the request generator component to manage its
 	 *  execution (starting and stopping the request generation).			*/
 	protected RequestGeneratorManagementOutboundPort	rgmop ;
@@ -244,17 +250,17 @@ extends		AbstractCVM
 									  RdRequestNotificationInboundPortURI);
 		this.addDeployedComponent(rd) ;
 		
-		this.rsobp =
+		this.rdrsobp =
 				(RequestSubmissionOutboundPort) rd.findPortFromURI(
 											RdRequestSubmissionOutboundPortURI) ;
-		rsobp.doConnection(
+		rdrsobp.doConnection(
 				VmRequestSubmissionInboundPortURI,
 				RequestSubmissionConnector.class.getCanonicalName()) ;
 
-		this.nobp =
+		this.rdnobp =
 			(RequestNotificationOutboundPort) vm.findPortFromURI(
 										VmRequestNotificationOutboundPortURI) ;
-		nobp.doConnection(
+		rdnobp.doConnection(
 					RdRequestNotificationInboundPortURI,
 					RequestNotificationConnector.class.getCanonicalName()) ;
 		
@@ -300,17 +306,17 @@ extends		AbstractCVM
 		//   virtual machines, and
 		// - one for request generation management i.e., starting and stopping
 		//   the generation process.
-		this.rsobp =
+		this.rgrsobp =
 			(RequestSubmissionOutboundPort) rg.findPortFromURI(
 										RgRequestSubmissionOutboundPortURI) ;
-		rsobp.doConnection(
+		rgrsobp.doConnection(
 				RdRequestSubmissionInboundPortURI,
 				RequestSubmissionConnector.class.getCanonicalName()) ;
 
-		this.nobp =
+		this.rgnobp =
 			(RequestNotificationOutboundPort) rd.findPortFromURI(
 										RdRequestNotificationOutboundPortURI) ;
-		nobp.doConnection(
+		rgnobp.doConnection(
 				RgRequestNotificationInboundPortURI,
 				RequestNotificationConnector.class.getCanonicalName()) ;
 
@@ -352,8 +358,10 @@ extends		AbstractCVM
 		// disconnect all ports explicitly connected in the deploy phase.
 		this.csPort.doDisconnection() ;
 		this.avmPort.doDisconnection() ;
-		this.rsobp.doDisconnection() ;
-		this.nobp.doDisconnection() ;
+		this.rdrsobp.doDisconnection() ;
+		this.rdnobp.doDisconnection() ;
+		this.rgrsobp.doDisconnection() ;
+		this.rgnobp.doDisconnection() ;
 		this.rgmop.doDisconnection() ;
 
 		super.shutdown() ;
@@ -384,19 +392,19 @@ extends		AbstractCVM
 		// Uncomment next line to execute components in debug mode.
 		// AbstractCVM.toggleDebugMode() ;
 		try {
-			final TestRequestGenerator trg = new TestRequestGenerator() ;
+			final TestRequestDispatcherMonoJVM trdm = new TestRequestDispatcherMonoJVM() ;
 			// Deploy the components
-			trg.deploy() ;
+			trdm.deploy() ;
 			System.out.println("starting...") ;
 			// Start them.
-			trg.start() ;
+			trdm.start() ;
 			// Execute the chosen request generation test scenario in a
 			// separate thread.
 			new Thread(new Runnable() {
 				@Override
 				public void run() {
 					try {
-						trg.testScenario() ;
+						trdm.testScenario() ;
 					} catch (Exception e) {
 						throw new RuntimeException(e) ;
 					}
@@ -406,7 +414,7 @@ extends		AbstractCVM
 			Thread.sleep(90000L) ;
 			// Shut down the application.
 			System.out.println("shutting down...") ;
-			trg.shutdown() ;
+			trdm.shutdown() ;
 			System.out.println("ending...") ;
 			// Exit from Java.
 			System.exit(0) ;
