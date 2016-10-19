@@ -1,6 +1,7 @@
 package fr.upmc.requestdispatcher.connectors;
 
 import fr.upmc.components.connectors.AbstractConnector;
+import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI;
 
 /**
@@ -25,6 +26,13 @@ public class			RequestDispatcherManagementConnector
 extends		AbstractConnector
 implements	RequestDispatcherManagementI
 {
+
+	@Override
+	public void addRequestSubmissioner(String requestSubmissionInboundPortURI, RequestNotificationOutboundPort rnop)
+			throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
 
 }
 

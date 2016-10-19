@@ -1,7 +1,15 @@
 package fr.upmc.requestdispatcher;
 
+
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.exceptions.ComponentShutdownException;
+import fr.upmc.datacenter.software.connectors.RequestNotificationConnector;
+import fr.upmc.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.upmc.datacenter.software.interfaces.RequestI;
 import fr.upmc.datacenter.software.interfaces.RequestNotificationHandlerI;
 import fr.upmc.datacenter.software.interfaces.RequestNotificationI;
@@ -67,7 +75,8 @@ import fr.upmc.requestdispatcher.ports.RequestDispatcherManagementInboundPort;
 public class			RequestDispatcher
 extends		AbstractComponent
 implements	RequestNotificationHandlerI,
-			RequestSubmissionHandlerI
+			RequestSubmissionHandlerI,
+			RequestDispatcherManagementI
 {
 	// ------------------------------------------------------------------------
 	// Component internal state
@@ -86,11 +95,13 @@ implements	RequestNotificationHandlerI,
 											requestNotificationOutboundPort ;
 	
 	/** the output port used to send requests to the service provider.		*/
-	protected RequestSubmissionOutboundPort		requestSubmissionOutboundPort ;
+	protected Map<String, RequestSubmissionOutboundPort>		requestSubmissionOutboundPorts ;
 	/** the inbound port receiving end of execution notifications.			*/
 	protected RequestNotificationInboundPort	requestNotificationInboundPort ;
 	
-
+	protected int numAppVm ;
+	protected int numberOfRequestSubmissionOutboundPort;
+	
 	// ------------------------------------------------------------------------
 	// Component constructor
 	// ------------------------------------------------------------------------
@@ -126,7 +137,6 @@ implements	RequestNotificationHandlerI,
 		String managementInboundPortURI,
 		String requestSubmissionInboundPortURI,
 		String requestNotificationOutboundPortURI,
-		String requestSubmissionOutboundPortURI,
 		String requestNotificationInboundPortURI
 		) throws Exception
 	{
@@ -140,8 +150,7 @@ implements	RequestNotificationHandlerI,
 		assert managementInboundPortURI != null ;
 		assert requestSubmissionInboundPortURI != null ;
 		assert requestNotificationOutboundPortURI != null ;
-		assert requestSubmissionOutboundPort != null ;
-		assert requestNotificationInboundPort != null ;
+		assert requestNotificationInboundPortURI != null ;
 
 
 		this.dispatcherURI = dispatcherURI ;
@@ -167,15 +176,16 @@ implements	RequestNotificationHandlerI,
 		this.requestNotificationOutboundPort.publishPort() ;
 		
 		this.addRequiredInterface(RequestSubmissionI.class) ;
-		this.requestSubmissionOutboundPort = new RequestSubmissionOutboundPort(requestSubmissionOutboundPortURI, this) ;
-		this.addPort(this.requestSubmissionOutboundPort) ;
-		this.requestSubmissionOutboundPort.publishPort() ;
+		requestSubmissionOutboundPorts = new LinkedHashMap<String, RequestSubmissionOutboundPort>(); 			
 
 		this.addOfferedInterface(RequestNotificationI.class) ;
 		this.requestNotificationInboundPort =
 			new RequestNotificationInboundPort(requestNotificationInboundPortURI, this) ;
 		this.addPort(this.requestNotificationInboundPort) ;
 		this.requestNotificationInboundPort.publishPort() ;
+	
+		numAppVm = 0;
+		numberOfRequestSubmissionOutboundPort = 0;
 	}
 
 	// ------------------------------------------------------------------------
@@ -194,8 +204,11 @@ implements	RequestNotificationHandlerI,
 				this.requestNotificationOutboundPort.doDisconnection() ;
 			}
 			
-			if (this.requestSubmissionOutboundPort.connected()) {
-				this.requestSubmissionOutboundPort.doDisconnection() ;
+			for (Entry<String, RequestSubmissionOutboundPort> entry :  requestSubmissionOutboundPorts.entrySet()) {
+				RequestSubmissionOutboundPort rsop = entry.getValue();
+				if (rsop.connected()) {
+					rsop.doDisconnection() ;
+				}				
 			}
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e) ;
@@ -214,11 +227,7 @@ implements	RequestNotificationHandlerI,
 	@Override
 	public void			acceptRequestSubmission(final RequestI r)
 	throws Exception
-	{
-		// Submit the current request.
-		this.logMessage("Request Dispatcher " + this.dispatcherURI + " is notified that request "+ r.getRequestURI() + " has ended.") ;
-		this.requestSubmissionOutboundPort.submitRequestAndNotify(r) ;
-	}
+	{}
 
 	// ------------------------------------------------------------------------
 	// Component internal services
@@ -254,6 +263,38 @@ implements	RequestNotificationHandlerI,
 	public void acceptRequestSubmissionAndNotify(RequestI r) throws Exception {	
 		// Submit the current request.
 		this.logMessage("Request Dispatcher " + this.dispatcherURI + " has received "+ r.getRequestURI()+".") ;
-		this.requestSubmissionOutboundPort.submitRequestAndNotify(r) ;
+		
+		Iterator<RequestSubmissionOutboundPort> it = this.requestSubmissionOutboundPorts.values().iterator();
+		int i = 0;
+		while (it.hasNext())
+		{
+			RequestSubmissionOutboundPort requestSubmissionOutboundPort = it.next();
+			if (i == numAppVm) {
+				requestSubmissionOutboundPort.submitRequestAndNotify(r) ;
+			}
+			i++;
+		}
+		
+		numAppVm = (numAppVm + 1) % requestSubmissionOutboundPorts.size();
+	}
+	
+	@Override
+	public void addRequestSubmissioner(String requestSubmissionInboundPortURI, RequestNotificationOutboundPort rnop) throws Exception {
+		String requestSubmissionOutboundPortURI = "rsobp" + numberOfRequestSubmissionOutboundPort++;
+		RequestSubmissionOutboundPort rdrsobp = new RequestSubmissionOutboundPort(requestSubmissionOutboundPortURI, this);
+		requestSubmissionOutboundPorts.put(requestSubmissionOutboundPortURI, rdrsobp);
+
+		this.addPort(rdrsobp) ;
+		rdrsobp.publishPort() ;
+		
+		rdrsobp.doConnection(
+				requestSubmissionInboundPortURI,
+				RequestSubmissionConnector.class.getCanonicalName()) ;
+
+		rnop.doConnection(
+				requestNotificationInboundPort.getPortURI(),
+					RequestNotificationConnector.class.getCanonicalName()) ;
+		
+
 	}
 }

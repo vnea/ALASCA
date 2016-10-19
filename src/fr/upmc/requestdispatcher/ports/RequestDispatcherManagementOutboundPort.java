@@ -2,6 +2,7 @@ package fr.upmc.requestdispatcher.ports;
 
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractOutboundPort;
+import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.datacenterclient.requestgenerator.interfaces.RequestGeneratorManagementI;
 import fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI;
 
@@ -43,5 +44,12 @@ implements	RequestDispatcherManagementI
 		super(uri, RequestGeneratorManagementI.class, owner) ;
 
 		assert	uri != null && owner != null ;
+	}
+
+	@Override
+	public void addRequestSubmissioner(String requestSubmissionInboundPortURI, RequestNotificationOutboundPort rnop)
+			throws Exception {
+		// TODO Auto-generated method stub
+		
 	}
 }

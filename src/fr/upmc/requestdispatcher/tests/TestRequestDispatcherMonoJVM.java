@@ -244,23 +244,23 @@ extends		AbstractCVM
 									  RequestDispatcherManagementInboundPortURI,
 									  RdRequestSubmissionInboundPortURI,
 									  RdRequestNotificationOutboundPortURI,
-									  RdRequestSubmissionOutboundPortURI,
 									  RdRequestNotificationInboundPortURI);
 		this.addDeployedComponent(rd) ;
+		rd.addRequestSubmissioner(VmRequestSubmissionInboundPortURI, (RequestNotificationOutboundPort) vm.findPortFromURI(VmRequestNotificationOutboundPortURI));
 		
-		this.rdrsobp =
-				(RequestSubmissionOutboundPort) rd.findPortFromURI(
-											RdRequestSubmissionOutboundPortURI) ;
-		rdrsobp.doConnection(
-				VmRequestSubmissionInboundPortURI,
-				RequestSubmissionConnector.class.getCanonicalName()) ;
-
-		this.rdnobp =
-			(RequestNotificationOutboundPort) vm.findPortFromURI(
-										VmRequestNotificationOutboundPortURI) ;
-		rdnobp.doConnection(
-					RdRequestNotificationInboundPortURI,
-					RequestNotificationConnector.class.getCanonicalName()) ;
+//		this.rdrsobp =
+//				(RequestSubmissionOutboundPort) rd.findPortFromURI(
+//											RdRequestSubmissionOutboundPortURI) ;
+//		rdrsobp.doConnection(
+//				VmRequestSubmissionInboundPortURI,
+//				RequestSubmissionConnector.class.getCanonicalName()) ;
+//
+//		this.rdnobp =
+//			(RequestNotificationOutboundPort) vm.findPortFromURI(
+//										VmRequestNotificationOutboundPortURI) ;
+//		rdnobp.doConnection(
+//					RdRequestNotificationInboundPortURI,
+//					RequestNotificationConnector.class.getCanonicalName()) ;
 		
 //		// Create a mock up port to manage the AVM component (allocate cores).
 //		this.rdmop = new RequestDispatcherManagementOutboundPort(
