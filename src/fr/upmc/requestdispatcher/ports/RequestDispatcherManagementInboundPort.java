@@ -5,6 +5,7 @@ import fr.upmc.components.ports.AbstractInboundPort;
 import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.datacenterclient.requestgenerator.RequestGenerator;
 import fr.upmc.datacenterclient.requestgenerator.interfaces.RequestGeneratorManagementI;
+import fr.upmc.requestdispatcher.RequestDispatcher;
 import fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI;
 
 /**
@@ -50,9 +51,17 @@ implements	RequestDispatcherManagementI
 	}
 
 	@Override
-	public void addRequestSubmissioner(String requestSubmissionInboundPortURI, RequestNotificationOutboundPort rnop)
+	public void addRequestReceiver(final String requestSubmissionInboundPortURI, final RequestNotificationOutboundPort rnop)
 			throws Exception {
-		// TODO Auto-generated method stub
+		final RequestDispatcher rd = (RequestDispatcher) this.owner ;
+		this.owner.handleRequestAsync(
+					new ComponentI.ComponentService<Void>() {
+						@Override
+						public Void call() throws Exception {
+							rd.addRequestReceiver(requestSubmissionInboundPortURI, rnop);
+							return null;
+						}
+					}) ;
 		
 	}
 }

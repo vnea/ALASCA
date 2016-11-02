@@ -99,6 +99,8 @@ implements	RequestNotificationHandlerI,
 	/** the inbound port receiving end of execution notifications.			*/
 	protected RequestNotificationInboundPort	requestNotificationInboundPort ;
 	
+
+	
 	protected int numAppVm ;
 	protected int numberOfRequestSubmissionOutboundPort;
 	
@@ -156,9 +158,13 @@ implements	RequestNotificationHandlerI,
 		this.dispatcherURI = dispatcherURI ;
 
 		// Interfaces and ports
+		
+		
 		this.addOfferedInterface(RequestDispatcherManagementI.class) ;
 		this.rdmip = new RequestDispatcherManagementInboundPort(
 												managementInboundPortURI, this) ;
+		this.addPort(this.rdmip) ;
+		this.rdmip.publishPort() ;
 		
 		this.addOfferedInterface(RequestSubmissionI.class) ;
 		this.requestSubmissionInboundPort =
@@ -279,7 +285,7 @@ implements	RequestNotificationHandlerI,
 	}
 	
 	@Override
-	public void addRequestSubmissioner(String requestSubmissionInboundPortURI, RequestNotificationOutboundPort rnop) throws Exception {
+	public void addRequestReceiver(String requestSubmissionInboundPortURI, RequestNotificationOutboundPort rnop) throws Exception {
 		String requestSubmissionOutboundPortURI = "rsobp" + numberOfRequestSubmissionOutboundPort++;
 		RequestSubmissionOutboundPort rdrsobp = new RequestSubmissionOutboundPort(requestSubmissionOutboundPortURI, this);
 		requestSubmissionOutboundPorts.put(requestSubmissionOutboundPortURI, rdrsobp);

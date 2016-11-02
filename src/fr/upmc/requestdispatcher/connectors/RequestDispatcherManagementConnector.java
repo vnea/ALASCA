@@ -26,13 +26,14 @@ public class			RequestDispatcherManagementConnector
 extends		AbstractConnector
 implements	RequestDispatcherManagementI
 {
-
+	
 	@Override
-	public void addRequestSubmissioner(String requestSubmissionInboundPortURI, RequestNotificationOutboundPort rnop)
+	public void addRequestReceiver(final String requestSubmissionInboundPortURI, final RequestNotificationOutboundPort rnop)
 			throws Exception {
-		// TODO Auto-generated method stub
-		
+		((RequestDispatcherManagementI)this.offering).addRequestReceiver(requestSubmissionInboundPortURI, rnop);
 	}
+	
+	
 
 }
 
