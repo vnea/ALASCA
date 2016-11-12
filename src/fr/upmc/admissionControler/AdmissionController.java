@@ -2,10 +2,10 @@ package fr.upmc.admissionControler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Map.Entry;
 
 import fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI;
 import fr.upmc.admissionControler.ports.AdmissionControllerServicesInboundPort;
@@ -13,13 +13,14 @@ import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.connectors.DataConnector;
 import fr.upmc.components.exceptions.ComponentShutdownException;
 import fr.upmc.datacenter.connectors.ControlledDataConnector;
-import fr.upmc.datacenter.hardware.computers.Computer;
 import fr.upmc.datacenter.hardware.computers.Computer.AllocatedCore;
 import fr.upmc.datacenter.hardware.computers.connectors.ComputerServicesConnector;
+import fr.upmc.datacenter.hardware.computers.interfaces.ComputerDynamicStateI;
+import fr.upmc.datacenter.hardware.computers.interfaces.ComputerStateDataConsumerI;
+import fr.upmc.datacenter.hardware.computers.interfaces.ComputerStaticStateI;
 import fr.upmc.datacenter.hardware.computers.ports.ComputerDynamicStateDataOutboundPort;
 import fr.upmc.datacenter.hardware.computers.ports.ComputerServicesOutboundPort;
 import fr.upmc.datacenter.hardware.computers.ports.ComputerStaticStateDataOutboundPort;
-import fr.upmc.datacenter.hardware.tests.ComputerMonitor;
 import fr.upmc.datacenter.software.applicationvm.ApplicationVM;
 import fr.upmc.datacenter.software.applicationvm.connectors.ApplicationVMManagementConnector;
 import fr.upmc.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
@@ -27,14 +28,14 @@ import fr.upmc.datacenter.software.connectors.RequestNotificationConnector;
 import fr.upmc.datacenter.software.connectors.RequestSubmissionConnector;
 import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
-import fr.upmc.datacenterclient.utils.TimeProcessing;
 import fr.upmc.requestdispatcher.RequestDispatcher;
 import fr.upmc.requestdispatcher.connectors.RequestDispatcherManagementConnector;
 import fr.upmc.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
 
 public class AdmissionController
 extends		AbstractComponent
-implements	AdmissionControllerServicesI
+implements	AdmissionControllerServicesI,
+			ComputerStateDataConsumerI
 {
 
 	/** URI of this dispatcher.											*/
@@ -44,27 +45,14 @@ implements	AdmissionControllerServicesI
 	protected AdmissionControllerServicesInboundPort acsip ;
 	
 	// Computers
-	public static final int		NUMBER_OF_COMPUTERS = 2 ;
-	public static final int		NUMBER_OF_PROCESSORS_PER_COMPUTER = 2 ;
-	public static final int		NUMBER_OF_CORES_PER_PROCESSOR = 4 ;
-
-	public static final String 	ComputerURIPrefix = "computer-";
-	public static final String	ComputerServicesInboundPortURIPrefix = "cs-ibp-" ;
 	public static final String	ComputerServicesOutboundPortURIPrefix = "cs-obp" ;
-	public static final String	ComputerStaticStateDataInboundPortURIPrefix = "css-dip-" ;
 	public static final String	ComputerStaticStateDataOutboundPortURIPrefix = "css-dop-" ;
-	public static final String	ComputerDynamicStateDataInboundPortURIPrefix = "cds-dip-" ;
 	public static final String	ComputerDynamicStateDataOutboundPortURIPrefix = "cds-dop" ;
-	protected ComputerServicesOutboundPort[] csPorts;
-	protected ComputerStaticStateDataOutboundPort[] cssPorts;
-	protected ComputerDynamicStateDataOutboundPort[] cdsPorts;
-	protected ComputerMonitor[] cms;
-
-	protected int					defautFrequency ;
-	protected int					maxFrequencyGap ;
-	protected Set<Integer>			admissibleFrequencies ;
-	protected Map<Integer,Integer>	processingPower ;
-	protected Computer[]			computers ;
+	protected Map<String,ComputerServicesOutboundPort> csPorts;
+	protected Map<String,ComputerStaticStateDataOutboundPort> cssPorts;
+	protected Map<String,ComputerDynamicStateDataOutboundPort> cdsPorts;
+	int nbComputers = 0;
+	protected Map<String,boolean[][]> 		reservedCores;
 	
 	// VMs
 	public static final String 	VmURIPrefix = "vm-";
@@ -117,78 +105,13 @@ implements	AdmissionControllerServicesI
 		this.addPort(this.acsip) ;
 		this.acsip.publishPort() ;
 		
-		// Computer parameters
-		Set<Integer> admissibleFrequencies = new HashSet<Integer>() ;
-		admissibleFrequencies.add(1500) ;	// Cores can run at 1,5 GHz
-		admissibleFrequencies.add(3000) ;	// and at 3 GHz
-		Map<Integer,Integer> processingPower = new HashMap<Integer,Integer>() ;
-		processingPower.put(1500, 1500000) ;	// 1,5 GHz executes 1,5 Mips
-		processingPower.put(3000, 3000000) ;
-		defautFrequency = 1500;
-		maxFrequencyGap = 1500;
 
-		this.computers = new Computer[NUMBER_OF_COMPUTERS] ;
-		this.csPorts = new ComputerServicesOutboundPort[NUMBER_OF_COMPUTERS] ;
-		this.cssPorts = new ComputerStaticStateDataOutboundPort[NUMBER_OF_COMPUTERS] ;
-		this.cdsPorts = new ComputerDynamicStateDataOutboundPort[NUMBER_OF_COMPUTERS] ;
-		this.cms = new ComputerMonitor[NUMBER_OF_COMPUTERS] ;
-		
-		for(int c = 0 ; c < NUMBER_OF_COMPUTERS ; c++) {
-			// ----------------------------------------------------------------
-			// Create and deploy a computer component with its processors.
-			// ----------------------------------------------------------------
-			this.computers[c] = new Computer(
-					ComputerURIPrefix + c,
-					admissibleFrequencies,
-					processingPower,  
-					defautFrequency,
-					maxFrequencyGap,		// max frequency gap within a processor
-					NUMBER_OF_PROCESSORS_PER_COMPUTER,
-					NUMBER_OF_CORES_PER_PROCESSOR,
-					ComputerServicesInboundPortURIPrefix + c,
-					ComputerStaticStateDataInboundPortURIPrefix + c,
-					ComputerDynamicStateDataInboundPortURIPrefix + c) ;
+		this.csPorts = new HashMap<String,ComputerServicesOutboundPort>() ;
+		this.cssPorts = new HashMap<String,ComputerStaticStateDataOutboundPort>() ;
+		this.cdsPorts = new HashMap<String,ComputerDynamicStateDataOutboundPort>() ;
+		this.reservedCores = new HashMap<String, boolean[][]>() ;
 			
-			// Create a mock-up computer services port to later allocate its cores
-			// to the application virtual machine.
-			this.csPorts[c] = new ComputerServicesOutboundPort(
-											ComputerServicesOutboundPortURIPrefix + c,
-											new AbstractComponent() {}) ;
-			this.csPorts[c].publishPort() ;
-			this.csPorts[c].doConnection(
-							ComputerServicesInboundPortURIPrefix + c,
-							ComputerServicesConnector.class.getCanonicalName()) ;
-			// --------------------------------------------------------------------
-
-			// --------------------------------------------------------------------
-			// Create the computer monitor component and connect its to ports
-			// with the computer component.
-			// --------------------------------------------------------------------
-			this.cms[c] =
-					new ComputerMonitor(ComputerURIPrefix + c,
-										true,
-										ComputerStaticStateDataOutboundPortURIPrefix + c,
-										ComputerDynamicStateDataOutboundPortURIPrefix + c) ;
-			
-			this.cssPorts[c] =
-					(ComputerStaticStateDataOutboundPort)
-						this.cms[c].findPortFromURI(ComputerStaticStateDataOutboundPortURIPrefix + c) ;
-			this.cssPorts[c].doConnection(
-							ComputerStaticStateDataInboundPortURIPrefix + c,
-							DataConnector.class.getCanonicalName()) ;
-
-			this.cdsPorts[c] =
-					(ComputerDynamicStateDataOutboundPort)
-						this.cms[c].findPortFromURI(ComputerDynamicStateDataOutboundPortURIPrefix + c) ;
-			this.cdsPorts[c].
-					doConnection(
-						ComputerDynamicStateDataInboundPortURIPrefix + c,
-						ControlledDataConnector.class.getCanonicalName()) ;
-		}
-		
-		
 	}
-	
 
 
 	/**
@@ -198,16 +121,11 @@ implements	AdmissionControllerServicesI
 	public void			shutdown() throws ComponentShutdownException
 	{
 		try {
-			for(int c = 0 ; c < NUMBER_OF_COMPUTERS ; c++) {
-				if (this.csPorts[c].connected()) {
-					this.csPorts[c].doDisconnection() ;
-				}	
-				
-				if (this.computers[c].isStarted())
-					this.computers[c].shutdown();
-				
-				if (this.cms[c].isStarted())
-					this.cms[c].shutdown();
+			for (Entry<String, ComputerServicesOutboundPort> entry :  csPorts.entrySet()) {
+				ComputerServicesOutboundPort csop = entry.getValue();
+				if (csop.connected()) {
+					csop.doDisconnection() ;
+				}				
 			}
 			
 			for(int i = 0 ; i < this.vms.size() ; i++){
@@ -225,6 +143,7 @@ implements	AdmissionControllerServicesI
 				if (this.rds.get(i).isStarted())
 					this.rds.get(i).shutdown();
 			}
+			
 		} catch (Exception e) {
 			throw new ComponentShutdownException(e) ;
 		}
@@ -241,18 +160,90 @@ implements	AdmissionControllerServicesI
 		
 		this.logMessage("Application submission");
 		
-		this.logMessage("Create Request Dispatcher "+RdURIPrefix + this.nbRds);
-		createRequestDispatcherAndConnect(rgrsobp, RgRequestNotificationInboundPortURI);
+		// Instantiate application on 2 VMs if possible 
+		// else 1 VM
+		// else refuse submission
+		// VM is create with 2 cores
+		List<String> computersOk = new ArrayList<String>();
+		Iterator<Entry<String, boolean[][]>> entries = this.reservedCores.entrySet().iterator();
+		while (entries.hasNext()  &&  computersOk.size() < 2){
+			Entry<String, boolean[][]> thisEntry = entries.next();
+			boolean[][] cores = (boolean[][]) thisEntry.getValue(); 
+			int nbCoresFree = 0;
+			for (int p = 0 ; p < cores.length ; p++) {
+				for (int c = 0 ; c < cores[p].length ; c++) {
+					if (!cores[p][c]) {
+						nbCoresFree++;
+					} 
+				}
+			}
+			while (nbCoresFree >= 2  &&  computersOk.size() < 2){
+				nbCoresFree = nbCoresFree - 2;
+				computersOk.add(thisEntry.getKey());
+			}
+		}
 		
-		this.logMessage("Create VM "+VmURIPrefix + this.nbRds);
-		createVmAndConnect(this.rdmPorts.get(this.nbRds-1));
-		AllocatedCore[] acs = this.csPorts[0].allocateCores(2) ;
-		this.vms.get(this.nbVms-1).allocateCores(acs);
+		if(computersOk.size() > 0){
+			this.logMessage("Create Request Dispatcher "+RdURIPrefix + this.nbRds);
+			createRequestDispatcherAndConnect(rgrsobp, RgRequestNotificationInboundPortURI);
+			for (int i = 0 ; i < computersOk.size() ; i++){
+				this.logMessage("Create VM "+ VmURIPrefix + this.nbVms);
+				createVmAndConnect(this.rdmPorts.get(this.nbRds-1));
+				AllocatedCore[] acs = this.csPorts.get(computersOk.get(i)).allocateCores(2) ;
+				this.vms.get(this.nbVms-1).allocateCores(acs);
+			}
+		}
+		else{
+			this.logMessage("Admission refused");
+		}
 		
-		this.logMessage("Create VM "+VmURIPrefix + this.nbRds);
-		createVmAndConnect(this.rdmPorts.get(this.nbRds-1));
-		AllocatedCore[] acs_2 = this.csPorts[0].allocateCores(2) ;
-		this.vms.get(this.nbVms-1).allocateCores(acs_2);
+	}
+	
+	
+	public void connectComputer (String ComputerURI,
+								String ComputerServicesInboundPortURI,
+								String ComputerStaticStateDataInboundPortURI,
+								String ComputerDynamicStateDataInboundPortURI) throws Exception{
+		
+		this.csPorts.put(ComputerURI, 
+				new ComputerServicesOutboundPort(
+						ComputerServicesOutboundPortURIPrefix + this.nbComputers,
+						new AbstractComponent() {}
+				)) ;
+		this.addPort(this.csPorts.get(ComputerURI));
+		this.csPorts.get(ComputerURI).publishPort() ;
+		this.csPorts.get(ComputerURI).doConnection(
+						ComputerServicesInboundPortURI,
+						ComputerServicesConnector.class.getCanonicalName()) ;
+		
+		this.cssPorts.put(ComputerURI, 
+					new ComputerStaticStateDataOutboundPort(
+						ComputerStaticStateDataOutboundPortURIPrefix + this.nbComputers,
+						this,
+						ComputerURI
+					)) ;
+		this.addPort(this.cssPorts.get(ComputerURI)) ;
+		this.cssPorts.get(ComputerURI).publishPort() ;
+		this.cssPorts.get(ComputerURI).doConnection(
+				ComputerStaticStateDataInboundPortURI,
+				DataConnector.class.getCanonicalName()) ;
+		
+		this.cdsPorts.put(ComputerURI, 
+				new ComputerDynamicStateDataOutboundPort(
+					ComputerDynamicStateDataOutboundPortURIPrefix + this.nbComputers,
+					this,
+					ComputerURI
+				)) ;
+		this.addPort(this.cdsPorts.get(ComputerURI)) ;
+		this.cdsPorts.get(ComputerURI).publishPort() ;
+		this.cdsPorts.get(ComputerURI).
+		doConnection(
+			ComputerDynamicStateDataInboundPortURI,
+			ControlledDataConnector.class.getCanonicalName()) ;
+		
+		this.cdsPorts.get(ComputerURI).startUnlimitedPushing(1000);
+	
+		this.nbComputers++;
 	}
 	
 	
@@ -272,6 +263,7 @@ implements	AdmissionControllerServicesI
 				new ApplicationVMManagementOutboundPort(
 						ApplicationVMManagementOutboundPortURIPrefix + this.nbVms,
 						new AbstractComponent() {});
+		this.addPort(avmPort);
 		this.avmPorts.add(avmPort) ;
 		avmPort.publishPort() ;
 		avmPort.doConnection(
@@ -311,6 +303,7 @@ implements	AdmissionControllerServicesI
 				new RequestDispatcherManagementOutboundPort(
 						RdManagementOutboundPortURIPrefix + this.nbRds,
 						new AbstractComponent() {});
+		this.addPort(rdmPort);
 		this.rdmPorts.add(rdmPort) ;
 		rdmPort.publishPort() ;
 		rdmPort.doConnection(
@@ -336,6 +329,24 @@ implements	AdmissionControllerServicesI
 		
 		this.nbRds ++;
 		// --------------------------------------------------------------------
+	}
+
+
+
+	@Override
+	public void acceptComputerStaticData(String computerURI,
+			ComputerStaticStateI staticState) throws Exception {
+		// TODO Auto-generated method stub
+		
+	}
+
+
+
+	@Override
+	public void acceptComputerDynamicData(String computerURI,
+		ComputerDynamicStateI cds) throws Exception {
+
+		this.reservedCores.put(cds.getComputerURI(), cds.getCurrentCoreReservations());
 	}
 	
 }	

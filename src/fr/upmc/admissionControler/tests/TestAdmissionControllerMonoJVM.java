@@ -1,13 +1,18 @@
 package fr.upmc.admissionControler.tests;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import fr.upmc.admissionControler.AdmissionController;
 import fr.upmc.admissionControler.connectors.AdmissionControllerServicesConnector;
 import fr.upmc.admissionControler.ports.AdmissionControllerServicesOutboundPort;
 import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.cvm.AbstractCVM;
+import fr.upmc.datacenter.hardware.computers.Computer;
 import fr.upmc.datacenter.hardware.processors.Processor;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
 import fr.upmc.datacenterclient.requestgenerator.RequestGenerator;
@@ -18,7 +23,27 @@ import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagemen
 public class TestAdmissionControllerMonoJVM
 extends		AbstractCVM
 {
-	public static final int		NUMBER_OF_APPLICATIONS = 2 ;
+	
+	// Computers
+	public static final int		NUMBER_OF_COMPUTERS = 2 ;
+	public static final int		NUMBER_OF_PROCESSORS_PER_COMPUTER = 2 ;
+	public static final int		NUMBER_OF_CORES_PER_PROCESSOR = 2 ;
+
+	public static final String 	ComputerURIPrefix = "computer-";
+	public static final String	ComputerServicesInboundPortURIPrefix = "cs-ibp-" ;
+	public static final String	ComputerStaticStateDataInboundPortURIPrefix = "css-dip-" ;
+	public static final String	ComputerStaticStateDataOutboundPortURIPrefix = "css-dop-" ;
+	public static final String	ComputerDynamicStateDataInboundPortURIPrefix = "cds-dip-" ;
+	public static final String	ComputerDynamicStateDataOutboundPortURIPrefix = "cds-dop" ;
+
+	protected int							defautFrequency ;
+	protected int							maxFrequencyGap ;
+	protected Set<Integer>					admissibleFrequencies ;
+	protected Map<Integer,Integer>			processingPower ;
+	protected Computer[]					computers ;
+		
+		
+	public static final int     NUMBER_OF_APPLICATIONS = 3;
 	
 	// Request Generators
 	public static final String 	RgURIPrefix = "rg-";
@@ -76,6 +101,41 @@ extends		AbstractCVM
 		ac.toggleLogging() ;
 		// --------------------------------------------------------------------
 		
+		// Computer parameters
+		Set<Integer> admissibleFrequencies = new HashSet<Integer>() ;
+		admissibleFrequencies.add(1500) ;	// Cores can run at 1,5 GHz
+		admissibleFrequencies.add(3000) ;	// and at 3 GHz
+		Map<Integer,Integer> processingPower = new HashMap<Integer,Integer>() ;
+		processingPower.put(1500, 1500000) ;	// 1,5 GHz executes 1,5 Mips
+		processingPower.put(3000, 3000000) ;
+		defautFrequency = 1500;
+		maxFrequencyGap = 1500;
+
+		this.computers = new Computer[NUMBER_OF_COMPUTERS] ;
+		
+		for(int c = 0 ; c < NUMBER_OF_COMPUTERS ; c++) {
+			// ----------------------------------------------------------------
+			// Create and deploy a computer component with its processors.
+			// ----------------------------------------------------------------
+			this.computers[c] = new Computer(
+					ComputerURIPrefix + c,
+					admissibleFrequencies,
+					processingPower,  
+					defautFrequency,
+					maxFrequencyGap,		// max frequency gap within a processor
+					NUMBER_OF_PROCESSORS_PER_COMPUTER,
+					NUMBER_OF_CORES_PER_PROCESSOR,
+					ComputerServicesInboundPortURIPrefix + c,
+					ComputerStaticStateDataInboundPortURIPrefix + c,
+					ComputerDynamicStateDataInboundPortURIPrefix + c) ;
+			
+			this.addDeployedComponent(computers[c]) ;
+			
+			ac.connectComputer( ComputerURIPrefix + c,
+								ComputerServicesInboundPortURIPrefix + c, 
+								ComputerStaticStateDataInboundPortURIPrefix + c, 
+								ComputerDynamicStateDataInboundPortURIPrefix + c);
+		}
 		
 		// complete the deployment at the component virtual machine level.
 		super.deploy();
@@ -98,7 +158,6 @@ extends		AbstractCVM
 	@Override
 	public void			shutdown() throws Exception
 	{
-	
 		this.acsop.doDisconnection();
 		
 		for(int i = 0 ; i < this.rgs.size() ; i++){
@@ -153,7 +212,8 @@ extends		AbstractCVM
 	 */
 	public void			testScenario() throws Exception
 	{
-		for (int i = 0 ; i < NUMBER_OF_APPLICATIONS ; i++){
+		Thread.sleep(1000L) ;
+		for (int i = 0 ; i < NUMBER_OF_APPLICATIONS ; i++) {
 			createRequestGenerator();
 			
 			this.acsop.submitApplication(
@@ -161,10 +221,15 @@ extends		AbstractCVM
 					findPortFromURI(RgRequestSubmissionOutboundPortURIPrefix + i),
 				RgRequestNotificationInboundPortURIPrefix + i);
 			
-			// start the request generation in the request generator.
 			Thread.sleep(1000L) ;
-			this.rgs.get(i).startGeneration() ;
-				
+			// If rgs is connected with request dispatcher so admission is OK
+			if(this.rgs.get(i).
+				findPortFromURI(RgRequestSubmissionOutboundPortURIPrefix + i).connected()){
+				// start the request generation in the request generator.
+				Thread.sleep(2000L) ;
+				this.rgs.get(i).startGeneration() ;
+			}
+			
 			Thread.sleep(10000L) ;
 		}
 		
