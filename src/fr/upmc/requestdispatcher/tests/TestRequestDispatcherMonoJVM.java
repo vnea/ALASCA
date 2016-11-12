@@ -83,10 +83,14 @@ extends		AbstractCVM
 	public static final String	ComputerStaticStateDataOutboundPortURI = "css-dop" ;
 	public static final String	ComputerDynamicStateDataInboundPortURI = "cds-dip" ;
 	public static final String	ComputerDynamicStateDataOutboundPortURI = "cds-dop" ;
-	public static final String	ApplicationVMManagementInboundPortURI = "avm-ibp" ;
-	public static final String	ApplicationVMManagementOutboundPortURI = "avm-obp" ;
-	public static final String	VmRequestSubmissionInboundPortURI = "vm-rsibp" ;
-	public static final String	VmRequestNotificationOutboundPortURI = "vm-rnobp" ;
+	public static final String	ApplicationVMManagementInboundPortURI_1 = "avm1-ibp" ;
+	public static final String	ApplicationVMManagementOutboundPortURI_1 = "avm1-obp" ;
+	public static final String	VmRequestSubmissionInboundPortURI_1 = "vm1-rsibp" ;
+	public static final String	VmRequestNotificationOutboundPortURI_1 = "vm1-rnobp" ;
+	public static final String	ApplicationVMManagementInboundPortURI_2 = "avm2-ibp" ;
+	public static final String	ApplicationVMManagementOutboundPortURI_2 = "avm2-obp" ;
+	public static final String	VmRequestSubmissionInboundPortURI_2 = "vm2-rsibp" ;
+	public static final String	VmRequestNotificationOutboundPortURI_2 = "vm2-rnobp" ;
 	public static final String	RdRequestSubmissionInboundPortURI = "rd-rsibp" ;
 	public static final String	RdRequestSubmissionOutboundPortURI = "rd-rsobp" ;
 	public static final String	RdRequestNotificationInboundPortURI = "rd-rnibp" ;
@@ -107,22 +111,18 @@ extends		AbstractCVM
 	 *  state data.															*/
 	protected ComputerDynamicStateDataOutboundPort		cdsPort ;
 	/** Port connected to the AVM component to allocate it cores.			*/
-	protected ApplicationVMManagementOutboundPort		avmPort ;
-	/** Port of the request dispatcher component sending requests to the
-	 *  AVM component.														*/
-	protected RequestSubmissionOutboundPort				rdrsobp ;
-	/** Port of the request dispatcher component used to receive end of
-	 *  execution notifications from the AVM component.						*/
-	protected RequestNotificationOutboundPort			rdnobp ;
-	/** Port connected to the request dispatcher component to manage its
-	 *  execution (starting and stopping the request dispatcher).			*/
+	protected ApplicationVMManagementOutboundPort		avmPort_1 ;
+	/** Port connected to the AVM component to allocate it cores.			*/
+	protected ApplicationVMManagementOutboundPort		avmPort_2 ;
+	/** Port connected to the request dispatcher component to connect 
+	 *  vm with request dispatcher											*/
 	protected RequestDispatcherManagementOutboundPort	rdmop ;
-	/** Port connected to the request generator component to manage its
-	 *  execution (starting and stopping the request generation).			*/
+	/** Port of the request dispatcher component used to send end of
+	 *  execution notifications to the request generator component.		*/
+	protected RequestNotificationOutboundPort			rdnobp ;
+	/** Port of the request generator component used to send request
+	 *  to the request dispatcher component.								*/
 	protected RequestSubmissionOutboundPort				rgrsobp ;
-	/** Port of the request generator component used to receive end of
-	 *  execution notifications from the request dispatcher component.		*/
-	protected RequestNotificationOutboundPort			rgnobp ;
 	/** Port connected to the request generator component to manage its
 	 *  execution (starting and stopping the request generation).			*/
 	protected RequestGeneratorManagementOutboundPort	rgmop ;
@@ -214,27 +214,53 @@ extends		AbstractCVM
 		// --------------------------------------------------------------------
 		// Create an Application VM component
 		// --------------------------------------------------------------------
-		ApplicationVM vm =
-				new ApplicationVM("vm0",	// application vm component URI
-								  ApplicationVMManagementInboundPortURI,
-								  VmRequestSubmissionInboundPortURI,
-								  VmRequestNotificationOutboundPortURI) ;
-		this.addDeployedComponent(vm) ;
+		ApplicationVM vm1 =
+				new ApplicationVM("vm1",	// application vm component URI
+								  ApplicationVMManagementInboundPortURI_1,
+								  VmRequestSubmissionInboundPortURI_1,
+								  VmRequestNotificationOutboundPortURI_1) ;
+		this.addDeployedComponent(vm1) ;
 
 		// Create a mock up port to manage the AVM component (allocate cores).
-		this.avmPort = new ApplicationVMManagementOutboundPort(
-									ApplicationVMManagementOutboundPortURI,
+		this.avmPort_1 = new ApplicationVMManagementOutboundPort(
+									ApplicationVMManagementOutboundPortURI_1,
 									new AbstractComponent() {}) ;
-		this.avmPort.publishPort() ;
-		this.avmPort.
+		this.avmPort_1.publishPort() ;
+		this.avmPort_1.
 				doConnection(
-					ApplicationVMManagementInboundPortURI,
+					ApplicationVMManagementInboundPortURI_1,
 					ApplicationVMManagementConnector.class.getCanonicalName()) ;
 
 		// Toggle on tracing and logging in the application virtual machine to
 		// follow the execution of individual requests.
-		vm.toggleTracing() ;
-		vm.toggleLogging() ;
+		vm1.toggleTracing() ;
+		vm1.toggleLogging() ;
+		// --------------------------------------------------------------------
+		
+		// --------------------------------------------------------------------
+		// Create an Application VM component
+		// --------------------------------------------------------------------
+		ApplicationVM vm2 =
+				new ApplicationVM("vm2",	// application vm component URI
+								  ApplicationVMManagementInboundPortURI_2,
+								  VmRequestSubmissionInboundPortURI_2,
+								  VmRequestNotificationOutboundPortURI_2) ;
+		this.addDeployedComponent(vm2) ;
+
+		// Create a mock up port to manage the AVM component (allocate cores).
+		this.avmPort_2 = new ApplicationVMManagementOutboundPort(
+									ApplicationVMManagementOutboundPortURI_2,
+									new AbstractComponent() {}) ;
+		this.avmPort_2.publishPort() ;
+		this.avmPort_2.
+				doConnection(
+					ApplicationVMManagementInboundPortURI_2,
+					ApplicationVMManagementConnector.class.getCanonicalName()) ;
+
+		// Toggle on tracing and logging in the application virtual machine to
+		// follow the execution of individual requests.
+		vm2.toggleTracing() ;
+		vm2.toggleLogging() ;
 		// --------------------------------------------------------------------
 		
 		// --------------------------------------------------------------------
@@ -257,8 +283,11 @@ extends		AbstractCVM
 					RequestDispatcherManagementInboundPortURI,
 					RequestDispatcherManagementConnector.class.getCanonicalName()) ;
 		
-		this.rdmop.addRequestReceiver(VmRequestSubmissionInboundPortURI, (RequestNotificationOutboundPort) vm.findPortFromURI(VmRequestNotificationOutboundPortURI));
-
+		this.rdmop.addRequestReceiver(VmRequestSubmissionInboundPortURI_1, 
+			(RequestNotificationOutboundPort) vm1.findPortFromURI(VmRequestNotificationOutboundPortURI_1));
+		this.rdmop.addRequestReceiver(VmRequestSubmissionInboundPortURI_2, 
+			(RequestNotificationOutboundPort) vm2.findPortFromURI(VmRequestNotificationOutboundPortURI_2));
+		
 		// Toggle on tracing and logging in the application virtual machine to
 		// follow the execution of individual requests.
 		rd.toggleTracing() ;
@@ -298,10 +327,10 @@ extends		AbstractCVM
 				RdRequestSubmissionInboundPortURI,
 				RequestSubmissionConnector.class.getCanonicalName()) ;
 
-		this.rgnobp =
+		rdnobp =
 			(RequestNotificationOutboundPort) rd.findPortFromURI(
 										RdRequestNotificationOutboundPortURI) ;
-		rgnobp.doConnection(
+		rdnobp.doConnection(
 				RgRequestNotificationInboundPortURI,
 				RequestNotificationConnector.class.getCanonicalName()) ;
 
@@ -328,10 +357,15 @@ extends		AbstractCVM
 	{
 		super.start() ;
 
-		// Allocate the 4 cores of the computer to the application virtual
+		// Allocate 2 cores of the computer to the first application virtual
 		// machine.
-		AllocatedCore[] ac = this.csPort.allocateCores(4) ;
-		this.avmPort.allocateCores(ac) ;
+		AllocatedCore[] ac_1 = this.csPort.allocateCores(2) ;
+		this.avmPort_1.allocateCores(ac_1) ;
+		
+		// Allocate 2 cores of the computer to the second application virtual
+		// machine.
+		AllocatedCore[] ac_2 = this.csPort.allocateCores(2) ;
+		this.avmPort_2.allocateCores(ac_2) ;
 	}
 
 	/**
@@ -342,11 +376,11 @@ extends		AbstractCVM
 	{
 		// disconnect all ports explicitly connected in the deploy phase.
 		this.csPort.doDisconnection() ;
-		this.avmPort.doDisconnection() ;
-		this.rdrsobp.doDisconnection() ;
+		this.avmPort_1.doDisconnection() ;
+		this.avmPort_2.doDisconnection() ;
+		this.rdmop.doDisconnection();
 		this.rdnobp.doDisconnection() ;
 		this.rgrsobp.doDisconnection() ;
-		this.rgnobp.doDisconnection() ;
 		this.rgmop.doDisconnection() ;
 
 		super.shutdown() ;

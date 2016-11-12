@@ -3,8 +3,6 @@ package fr.upmc.requestdispatcher.ports;
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractInboundPort;
 import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
-import fr.upmc.datacenterclient.requestgenerator.RequestGenerator;
-import fr.upmc.datacenterclient.requestgenerator.interfaces.RequestGeneratorManagementI;
 import fr.upmc.requestdispatcher.RequestDispatcher;
 import fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI;
 
@@ -35,9 +33,9 @@ implements	RequestDispatcherManagementI
 		ComponentI owner
 		) throws Exception
 	{
-		super(RequestGeneratorManagementI.class, owner) ;
+		super(RequestDispatcherManagementI.class, owner) ;
 
-		assert	owner != null && owner instanceof RequestGenerator ;
+		assert	owner != null && owner instanceof RequestDispatcher ;
 	}
 
 	public				RequestDispatcherManagementInboundPort(
@@ -45,14 +43,17 @@ implements	RequestDispatcherManagementI
 		ComponentI owner
 		) throws Exception
 	{
-		super(uri, RequestGeneratorManagementI.class, owner);
+		super(uri, RequestDispatcherManagementI.class, owner);
 
-		assert	owner != null && owner instanceof RequestGenerator ;
+		assert	owner != null && owner instanceof RequestDispatcher ;
 	}
 
 	@Override
-	public void addRequestReceiver(final String requestSubmissionInboundPortURI, final RequestNotificationOutboundPort rnop)
+	public void addRequestReceiver(
+			final String requestSubmissionInboundPortURI, 
+			final RequestNotificationOutboundPort rnop)
 			throws Exception {
+		
 		final RequestDispatcher rd = (RequestDispatcher) this.owner ;
 		this.owner.handleRequestAsync(
 					new ComponentI.ComponentService<Void>() {
