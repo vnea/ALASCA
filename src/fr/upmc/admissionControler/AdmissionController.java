@@ -505,7 +505,6 @@ implements	AdmissionControllerServicesI,
 		ComputerDynamicStateI cds) throws Exception {
 
 		this.reservedCores.put(cds.getComputerURI(), cds.getCurrentCoreReservations());
-		Iterator<Entry<String, boolean[][]>> entries = this.reservedCores.entrySet().iterator();
 	}	
 }	
 	

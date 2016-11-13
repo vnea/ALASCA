@@ -6,13 +6,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import fr.upmc.admissionControler.AdmissionController;
 import fr.upmc.admissionControler.connectors.AdmissionControllerServicesConnector;
 import fr.upmc.admissionControler.ports.AdmissionControllerServicesOutboundPort;
 import fr.upmc.components.AbstractComponent;
-import fr.upmc.components.ComponentI;
 import fr.upmc.components.cvm.AbstractCVM;
 import fr.upmc.datacenter.hardware.computers.Computer;
 import fr.upmc.datacenter.hardware.processors.Processor;
