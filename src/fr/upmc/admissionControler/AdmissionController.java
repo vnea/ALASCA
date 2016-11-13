@@ -1,5 +1,6 @@
 package fr.upmc.admissionControler;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -7,9 +8,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtMethod;
 import fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI;
 import fr.upmc.admissionControler.ports.AdmissionControllerServicesInboundPort;
 import fr.upmc.components.AbstractComponent;
+import fr.upmc.components.connectors.AbstractConnector;
 import fr.upmc.components.connectors.DataConnector;
 import fr.upmc.components.exceptions.ComponentShutdownException;
 import fr.upmc.datacenter.connectors.ControlledDataConnector;
@@ -26,6 +31,7 @@ import fr.upmc.datacenter.software.applicationvm.connectors.ApplicationVMManagem
 import fr.upmc.datacenter.software.applicationvm.ports.ApplicationVMManagementOutboundPort;
 import fr.upmc.datacenter.software.connectors.RequestNotificationConnector;
 import fr.upmc.datacenter.software.connectors.RequestSubmissionConnector;
+import fr.upmc.datacenter.software.interfaces.RequestSubmissionI;
 import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
 import fr.upmc.requestdispatcher.RequestDispatcher;
@@ -200,6 +206,65 @@ implements	AdmissionControllerServicesI,
 	}
 	
 	
+	@Override
+	public void submitApplication(
+			Class<?> offeredInterface,
+			Map<String,String> methodNamesMap,
+			RequestSubmissionOutboundPort rgrsobp,
+			String RgRequestNotificationInboundPortURI
+			) throws Exception {
+		
+		this.logMessage("Application submission");
+		
+		// Instantiate application on 2 VMs if possible 
+		// else 1 VM
+		// else refuse submission
+		// VM is create with 2 cores
+		List<String> computersOk = new ArrayList<String>();
+		Iterator<Entry<String, boolean[][]>> entries = this.reservedCores.entrySet().iterator();
+		while (entries.hasNext()  &&  computersOk.size() < 2){
+			Entry<String, boolean[][]> thisEntry = entries.next();
+			boolean[][] cores = (boolean[][]) thisEntry.getValue(); 
+			int nbCoresFree = 0;
+			for (int p = 0 ; p < cores.length ; p++) {
+				for (int c = 0 ; c < cores[p].length ; c++) {
+					if (!cores[p][c]) {
+						nbCoresFree++;
+					} 
+				}
+			}
+			while (nbCoresFree >= 2  &&  computersOk.size() < 2){
+				nbCoresFree = nbCoresFree - 2;
+				computersOk.add(thisEntry.getKey());
+			}
+		}
+		
+		if(computersOk.size() > 0){
+			this.logMessage("Create Request Dispatcher "+RdURIPrefix + this.nbRds);
+			createRequestDispatcherAndConnect(rgrsobp, RgRequestNotificationInboundPortURI);
+			
+			Class<?> connectorClass = 
+					this.makeConnectorClassJavassist(
+							"fr.upmc.admissionControler.admissionController.GenerateConnector", 
+							AbstractConnector.class, 
+							RequestSubmissionI.class, 
+							RequestSubmissionI.class, 
+							(HashMap<String, String>) methodNamesMap);
+			
+			for (int i = 0 ; i < computersOk.size() ; i++){
+				this.logMessage("Create VM "+ VmURIPrefix + this.nbVms);
+				createVmAndConnect(this.rdmPorts.get(this.nbRds-1), connectorClass);
+				AllocatedCore[] acs = this.csPorts.get(computersOk.get(i)).allocateCores(2) ;
+				this.vms.get(this.nbVms-1).allocateCores(acs);
+			}
+		}
+		else{
+			this.logMessage("Admission refused");
+		}
+		
+	}
+	
+	
 	public void connectComputer (String ComputerURI,
 								String ComputerServicesInboundPortURI,
 								String ComputerStaticStateDataInboundPortURI,
@@ -241,7 +306,7 @@ implements	AdmissionControllerServicesI,
 			ComputerDynamicStateDataInboundPortURI,
 			ControlledDataConnector.class.getCanonicalName()) ;
 		
-		this.cdsPorts.get(ComputerURI).startUnlimitedPushing(1000);
+		this.cdsPorts.get(ComputerURI).startUnlimitedPushing(100);
 	
 		this.nbComputers++;
 	}
@@ -279,6 +344,47 @@ implements	AdmissionControllerServicesI,
 				VmRequestSubmissionInboundPortURIPrefix + this.nbVms, 
 				(RequestNotificationOutboundPort)vm.
 					findPortFromURI(VmRequestNotificationOutboundPortURIPrefix + this.nbVms));
+		
+		this.nbVms ++;
+		// --------------------------------------------------------------------
+	}
+	
+	private void createVmAndConnect (
+				RequestDispatcherManagementOutboundPort rdmop,
+				Class<?> connectorClass
+				) throws Exception {
+		// --------------------------------------------------------------------
+		// Create an Application VM component
+		// --------------------------------------------------------------------
+		ApplicationVM vm = 
+				new ApplicationVM(VmURIPrefix + this.nbVms,	// application vm component URI
+						  ApplicationVMManagementInboundPortURIPrefix + this.nbVms,
+						  VmRequestSubmissionInboundPortURIPrefix + this.nbVms,
+						  VmRequestNotificationOutboundPortURIPrefix + this.nbVms);
+		this.vms.add(vm) ;
+
+		// Create a mock up port to manage the AVM component (allocate cores).
+		ApplicationVMManagementOutboundPort avmPort = 
+				new ApplicationVMManagementOutboundPort(
+						ApplicationVMManagementOutboundPortURIPrefix + this.nbVms,
+						new AbstractComponent() {});
+		this.addPort(avmPort);
+		this.avmPorts.add(avmPort) ;
+		avmPort.publishPort() ;
+		avmPort.doConnection(
+					ApplicationVMManagementInboundPortURIPrefix + this.nbVms,
+					ApplicationVMManagementConnector.class.getCanonicalName()) ;
+
+		// Toggle on tracing and logging in the application virtual machine to
+		// follow the execution of individual requests.
+		vm.toggleTracing() ;
+		vm.toggleLogging() ;
+		
+		rdmop.addRequestReceiver(
+				VmRequestSubmissionInboundPortURIPrefix + this.nbVms, 
+				(RequestNotificationOutboundPort)vm.
+					findPortFromURI(VmRequestNotificationOutboundPortURIPrefix + this.nbVms),
+				connectorClass);
 		
 		this.nbVms ++;
 		// --------------------------------------------------------------------
@@ -330,6 +436,58 @@ implements	AdmissionControllerServicesI,
 		this.nbRds ++;
 		// --------------------------------------------------------------------
 	}
+	
+	public Class<?> makeConnectorClassJavassist(String connectorCanonicalClassName, Class<?> connectorSuperclass,
+			Class<?> connectorImplementedInterface, Class<?> offeredInterface, HashMap<String,String> methodNamesMap
+			) throws Exception
+	{
+		ClassPool pool = ClassPool.getDefault() ;
+		CtClass cs = pool.get(connectorSuperclass.getCanonicalName()) ;
+		CtClass cii = pool.get(connectorImplementedInterface.getCanonicalName()) ;
+//		CtClass oi = pool.get(offeredInterface.getCanonicalName()) ;
+		CtClass connectorCtClass = pool.makeClass(connectorCanonicalClassName) ; 
+		connectorCtClass.setSuperclass(cs) ;
+		Method[] methodsToImplement = connectorImplementedInterface.getDeclaredMethods() ; 
+		for (int i = 0 ; i < methodsToImplement.length ; i++) {
+			String source = "public " ;
+			source += methodsToImplement[i].getReturnType().getName() + " " ; 
+			source += methodsToImplement[i].getName() + "(" ;
+			Class<?>[] pt = methodsToImplement[i].getParameterTypes() ; 
+			String callParam = "" ;
+			for (int j = 0 ; j < pt.length ; j++) {
+				String pName = "aaa" + j ;
+				source += pt[j].getCanonicalName() + " " + pName ; 
+				callParam += pName ;
+				if (j < pt.length - 1) {
+					source += ", " ;
+					callParam += ", " ; 
+				}
+			}
+			source += ")" ;
+			Class<?>[] et = methodsToImplement[i].getExceptionTypes() ; 
+			if (et != null && et.length > 0) {
+				source += " throws " ;
+				for (int z = 0 ; z < et.length ; z++) { 
+					source += et[z].getCanonicalName() ; 
+					if (z < et.length - 1) {
+						source += "," ; 
+					}
+				} 
+			}
+			source += "\n{ return ((" ;
+			source += offeredInterface.getCanonicalName() + ")this.offering)." ; 
+			source += methodNamesMap.get(methodsToImplement[i].getName()) ; 
+			source += "(" + callParam + ") ;\n}" ;
+			CtMethod theCtMethod = CtMethod.make(source, connectorCtClass) ; 
+			connectorCtClass.addMethod(theCtMethod) ;
+		}
+		connectorCtClass.setInterfaces(new CtClass[]{cii}) ; 
+		cii.detach() ; 
+		cs.detach() ; 
+		Class<?> ret = connectorCtClass.toClass() ; 
+		connectorCtClass.detach() ;
+		return ret ;
+	}
 
 
 
@@ -347,7 +505,17 @@ implements	AdmissionControllerServicesI,
 		ComputerDynamicStateI cds) throws Exception {
 
 		this.reservedCores.put(cds.getComputerURI(), cds.getCurrentCoreReservations());
-	}
-	
+		Iterator<Entry<String, boolean[][]>> entries = this.reservedCores.entrySet().iterator();
+		while (entries.hasNext()){
+			Entry<String, boolean[][]> thisEntry = entries.next();
+			boolean[][] cores = (boolean[][]) thisEntry.getValue(); 
+			for (int p = 0 ; p < cores.length ; p++) {
+				for (int c = 0 ; c < cores[p].length ; c++) {
+					this.logMessage(Boolean.toString(cores[p][c])+" ");
+				}
+			}
+			this.logMessage(" ");
+		}
+	}	
 }	
 	

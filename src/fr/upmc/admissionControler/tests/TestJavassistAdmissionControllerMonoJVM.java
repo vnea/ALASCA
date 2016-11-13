@@ -6,21 +6,24 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Vector;
 
 import fr.upmc.admissionControler.AdmissionController;
 import fr.upmc.admissionControler.connectors.AdmissionControllerServicesConnector;
 import fr.upmc.admissionControler.ports.AdmissionControllerServicesOutboundPort;
 import fr.upmc.components.AbstractComponent;
+import fr.upmc.components.ComponentI;
 import fr.upmc.components.cvm.AbstractCVM;
 import fr.upmc.datacenter.hardware.computers.Computer;
 import fr.upmc.datacenter.hardware.processors.Processor;
+import fr.upmc.datacenter.software.interfaces.RequestSubmissionI;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
 import fr.upmc.datacenterclient.requestgenerator.RequestGenerator;
 import fr.upmc.datacenterclient.requestgenerator.connectors.RequestGeneratorManagementConnector;
 import fr.upmc.datacenterclient.requestgenerator.ports.RequestGeneratorManagementOutboundPort;
 
 
-public class TestAdmissionControllerMonoJVM
+public class TestJavassistAdmissionControllerMonoJVM
 extends		AbstractCVM
 {
 	
@@ -66,7 +69,7 @@ extends		AbstractCVM
 	protected AdmissionControllerServicesOutboundPort	acsop ;
 	
 	
-	public				TestAdmissionControllerMonoJVM()
+	public				TestJavassistAdmissionControllerMonoJVM()
 	throws Exception
 	{
 		super();
@@ -212,14 +215,19 @@ extends		AbstractCVM
 	 */
 	public void			testScenario() throws Exception
 	{
-		Thread.sleep(1000L) ;
 		for (int i = 0 ; i < NUMBER_OF_APPLICATIONS ; i++) {
 			createRequestGenerator();
 			
+			Map<String,String> methodNamesMap = new HashMap<String,String>();
+			methodNamesMap.put("submitRequestAndNotify", "submitRequestAndNotify");
+			methodNamesMap.put("submitRequest", "submitRequest");
 			this.acsop.submitApplication(
+				RequestSubmissionI.class,
+				methodNamesMap,
 				(RequestSubmissionOutboundPort) this.rgs.get(i).
 					findPortFromURI(RgRequestSubmissionOutboundPortURIPrefix + i),
-				RgRequestNotificationInboundPortURIPrefix + i);
+				RgRequestNotificationInboundPortURIPrefix + i
+				);
 			
 			// If rgs is connected with request dispatcher so admission is OK
 			boolean connected = false;
@@ -256,7 +264,7 @@ extends		AbstractCVM
 		// Uncomment next line to execute components in debug mode.
 		// AbstractCVM.toggleDebugMode() ;
 		try {
-			final TestAdmissionControllerMonoJVM trcm = new TestAdmissionControllerMonoJVM() ;
+			final TestJavassistAdmissionControllerMonoJVM trcm = new TestJavassistAdmissionControllerMonoJVM() ;
 			// Deploy the components
 			trcm.deploy() ;
 			System.out.println("starting...") ;
@@ -294,3 +302,4 @@ extends		AbstractCVM
 		}
 	}
 }
+

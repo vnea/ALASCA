@@ -285,7 +285,10 @@ implements	RequestNotificationHandlerI,
 	}
 	
 	@Override
-	public void addRequestReceiver(String requestSubmissionInboundPortURI, RequestNotificationOutboundPort rnop) throws Exception {
+	public void addRequestReceiver(
+			String requestSubmissionInboundPortURI, 
+			RequestNotificationOutboundPort rnop
+			) throws Exception {
 		String requestSubmissionOutboundPortURI = "rsobp" + numberOfRequestSubmissionOutboundPort++;
 		RequestSubmissionOutboundPort rdrsobp = new RequestSubmissionOutboundPort(requestSubmissionOutboundPortURI, this);
 		requestSubmissionOutboundPorts.put(requestSubmissionOutboundPortURI, rdrsobp);
@@ -300,7 +303,27 @@ implements	RequestNotificationHandlerI,
 		rnop.doConnection(
 				requestNotificationInboundPort.getPortURI(),
 					RequestNotificationConnector.class.getCanonicalName()) ;
-		
+	}
+	
+	@Override
+	public void addRequestReceiver(
+			String requestSubmissionInboundPortURI, 
+			RequestNotificationOutboundPort rnop,
+			Class<?> connectorClass
+			) throws Exception {
+		String requestSubmissionOutboundPortURI = "rsobp" + numberOfRequestSubmissionOutboundPort++;
+		RequestSubmissionOutboundPort rdrsobp = new RequestSubmissionOutboundPort(requestSubmissionOutboundPortURI, this);
+		requestSubmissionOutboundPorts.put(requestSubmissionOutboundPortURI, rdrsobp);
 
+		this.addPort(rdrsobp) ;
+		rdrsobp.publishPort() ;
+		
+		rdrsobp.doConnection(
+				requestSubmissionInboundPortURI,
+				connectorClass.getCanonicalName()) ;
+
+		rnop.doConnection(
+				requestNotificationInboundPort.getPortURI(),
+					RequestNotificationConnector.class.getCanonicalName()) ;
 	}
 }

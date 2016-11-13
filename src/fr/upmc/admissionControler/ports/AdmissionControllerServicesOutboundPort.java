@@ -1,5 +1,7 @@
 package fr.upmc.admissionControler.ports;
 
+import java.util.Map;
+
 import fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI;
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractOutboundPort;
@@ -30,7 +32,23 @@ implements	AdmissionControllerServicesI
 			String RgRequestNotificationInboundPortURI
 			) throws Exception {
 		
-		((AdmissionControllerServicesI)this.connector).submitApplication(rgrsobp, RgRequestNotificationInboundPortURI);
+		((AdmissionControllerServicesI)this.connector).
+				submitApplication(rgrsobp, RgRequestNotificationInboundPortURI);
+	}
+
+	@Override
+	public void submitApplication(
+			Class<?> offeredInterface,
+			Map<String, String> mehtodNamesMap,
+			RequestSubmissionOutboundPort rgrsobp,
+			String RgRequestNotificationInboundPortURI) throws Exception {
+		
+		((AdmissionControllerServicesI)this.connector).
+				submitApplication(offeredInterface, 
+								  mehtodNamesMap,
+								  rgrsobp, 
+								  RgRequestNotificationInboundPortURI
+								 );
 	}
 
 }

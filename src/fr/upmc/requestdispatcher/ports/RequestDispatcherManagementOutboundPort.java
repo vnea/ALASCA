@@ -46,8 +46,21 @@ implements	RequestDispatcherManagementI
 	}
 
 	@Override
-	public void addRequestReceiver(final String requestSubmissionInboundPortURI, final RequestNotificationOutboundPort rnop)
-			throws Exception {
-		((RequestDispatcherManagementI)this.connector).addRequestReceiver(requestSubmissionInboundPortURI, rnop);
+	public void addRequestReceiver(
+			final String requestSubmissionInboundPortURI, 
+			final RequestNotificationOutboundPort rnop
+			)throws Exception {
+		((RequestDispatcherManagementI)this.connector).
+							addRequestReceiver(requestSubmissionInboundPortURI, rnop);
+	}
+	
+	@Override
+	public void addRequestReceiver(
+			final String requestSubmissionInboundPortURI, 
+			final RequestNotificationOutboundPort rnop,
+			final Class<?> connectorClass
+			)throws Exception {
+		((RequestDispatcherManagementI)this.connector).
+					addRequestReceiver(requestSubmissionInboundPortURI, rnop, connectorClass);
 	}
 }

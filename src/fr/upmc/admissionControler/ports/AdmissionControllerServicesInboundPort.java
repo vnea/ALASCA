@@ -1,5 +1,7 @@
 package fr.upmc.admissionControler.ports;
 
+import java.util.Map;
+
 import fr.upmc.admissionControler.AdmissionController;
 import fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI;
 import fr.upmc.components.ComponentI;
@@ -46,5 +48,30 @@ implements	AdmissionControllerServicesI
 							return null;
 						}
 					}) ;
+	}
+
+	@Override
+	public void submitApplication(
+			final Class<?> offeredInterface,
+			final Map<String, String> mehtodNamesMap,
+			final RequestSubmissionOutboundPort rgrsobp,
+			final String RgRequestNotificationInboundPortURI
+			) throws Exception {
+		
+		final AdmissionController ac = (AdmissionController) this.owner ;
+		this.owner.handleRequestAsync(
+					new ComponentI.ComponentService<Void>() {
+						@Override
+						public Void call() throws Exception {
+							ac.submitApplication(
+											offeredInterface, 
+											mehtodNamesMap,
+											rgrsobp, 
+											RgRequestNotificationInboundPortURI
+											);
+							return null;
+						}
+					}) ;
+		
 	}
 }

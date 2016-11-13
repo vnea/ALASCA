@@ -28,12 +28,24 @@ implements	RequestDispatcherManagementI
 {
 	
 	@Override
-	public void addRequestReceiver(final String requestSubmissionInboundPortURI, final RequestNotificationOutboundPort rnop)
+	public void addRequestReceiver(
+			final String requestSubmissionInboundPortURI, 
+			final RequestNotificationOutboundPort rnop)
 			throws Exception {
-		((RequestDispatcherManagementI)this.offering).addRequestReceiver(requestSubmissionInboundPortURI, rnop);
+		((RequestDispatcherManagementI)this.offering).
+						addRequestReceiver(requestSubmissionInboundPortURI, rnop);
 	}
 	
-	
-
+	@Override
+	public void addRequestReceiver(
+			String requestSubmissionInboundPortURI, 
+			RequestNotificationOutboundPort rnop,
+			Class<?> connectorClass
+			) throws Exception {
+		((RequestDispatcherManagementI)this.offering).
+							addRequestReceiver(requestSubmissionInboundPortURI, 
+												rnop,
+												connectorClass);
+	}
 }
 
