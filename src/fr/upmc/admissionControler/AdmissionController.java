@@ -245,7 +245,7 @@ implements	AdmissionControllerServicesI,
 			
 			Class<?> connectorClass = 
 					this.makeConnectorClassJavassist(
-							"fr.upmc.admissionControler.admissionController.GenerateConnector", 
+							"fr.upmc.admissionControler.admissionController.GenerateConnector" + this.nbRds, 
 							AbstractConnector.class, 
 							RequestSubmissionI.class, 
 							RequestSubmissionI.class, 
