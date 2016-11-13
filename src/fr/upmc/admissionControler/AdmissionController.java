@@ -200,7 +200,7 @@ implements	AdmissionControllerServicesI,
 			}
 		}
 		else{
-			this.logMessage("Admission refused");
+			this.logMessage("Submission refused");
 		}
 		
 	}
@@ -259,7 +259,7 @@ implements	AdmissionControllerServicesI,
 			}
 		}
 		else{
-			this.logMessage("Admission refused");
+			this.logMessage("Submission refused");
 		}
 		
 	}
@@ -306,7 +306,7 @@ implements	AdmissionControllerServicesI,
 			ComputerDynamicStateDataInboundPortURI,
 			ControlledDataConnector.class.getCanonicalName()) ;
 		
-		this.cdsPorts.get(ComputerURI).startUnlimitedPushing(100);
+		this.cdsPorts.get(ComputerURI).startUnlimitedPushing(500);
 	
 		this.nbComputers++;
 	}
@@ -506,16 +506,6 @@ implements	AdmissionControllerServicesI,
 
 		this.reservedCores.put(cds.getComputerURI(), cds.getCurrentCoreReservations());
 		Iterator<Entry<String, boolean[][]>> entries = this.reservedCores.entrySet().iterator();
-		while (entries.hasNext()){
-			Entry<String, boolean[][]> thisEntry = entries.next();
-			boolean[][] cores = (boolean[][]) thisEntry.getValue(); 
-			for (int p = 0 ; p < cores.length ; p++) {
-				for (int c = 0 ; c < cores[p].length ; c++) {
-					this.logMessage(Boolean.toString(cores[p][c])+" ");
-				}
-			}
-			this.logMessage(" ");
-		}
 	}	
 }	
 	

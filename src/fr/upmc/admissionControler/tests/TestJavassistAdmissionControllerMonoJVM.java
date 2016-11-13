@@ -270,13 +270,8 @@ extends		AbstractCVM
 			System.out.println("starting...") ;
 			// Start them.
 			trcm.start() ;
-			// wait while components starting
-			/*Vector<ComponentI> cps = trcm.deployedComponents;
-			for(int i = 0 ; i < cps.size() ; i++){
-				while(!cps.get(i).isStarted()){}
-			}*/
-			Thread.sleep(5000);
 			
+			Thread.sleep(1000);
 			// Execute the chosen request generation test scenario in a
 			// separate thread.
 			new Thread(new Runnable() {
