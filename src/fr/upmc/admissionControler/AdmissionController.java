@@ -44,6 +44,9 @@ implements	AdmissionControllerServicesI,
 			ComputerStateDataConsumerI
 {
 
+	// ------------------------------------------------------------------------
+	// Component internal state
+	// ------------------------------------------------------------------------
 	/** URI of this dispatcher.											*/
 	protected String				AdmissionControllerURI ;
 	
@@ -158,8 +161,11 @@ implements	AdmissionControllerServicesI,
 	}
 
 
+	/* 
+	 * @see fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI#submitApplication(fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort, java.lang.String)
+	 */
 	@Override
-	public void submitApplication(
+	public boolean submitApplication(
 			RequestSubmissionOutboundPort rgrsobp,
 			String RgRequestNotificationInboundPortURI
 			) throws Exception {
@@ -201,13 +207,18 @@ implements	AdmissionControllerServicesI,
 		}
 		else{
 			this.logMessage("Submission refused");
+			return false;
 		}
 		
+		return true;
 	}
 	
 	
+	/* 
+	 * @see fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI#submitApplication(java.lang.Class, java.util.Map, fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort, java.lang.String)
+	 */
 	@Override
-	public void submitApplication(
+	public boolean submitApplication(
 			Class<?> offeredInterface,
 			Map<String,String> methodNamesMap,
 			RequestSubmissionOutboundPort rgrsobp,
@@ -260,11 +271,17 @@ implements	AdmissionControllerServicesI,
 		}
 		else{
 			this.logMessage("Submission refused");
+			return false;
 		}
 		
+		return true;
 	}
 	
 	
+	
+	/*
+	 * @see fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI#connectComputer(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+	 */
 	public void connectComputer (String ComputerURI,
 								String ComputerServicesInboundPortURI,
 								String ComputerStaticStateDataInboundPortURI,
@@ -312,6 +329,12 @@ implements	AdmissionControllerServicesI,
 	}
 	
 	
+	/**
+	 * Create a VM and connect her to the dispatcher.
+	 * 
+	 * @param rdmop
+	 * @throws Exception
+	 */
 	private void createVmAndConnect (RequestDispatcherManagementOutboundPort rdmop) throws Exception {
 		// --------------------------------------------------------------------
 		// Create an Application VM component
@@ -349,6 +372,14 @@ implements	AdmissionControllerServicesI,
 		// --------------------------------------------------------------------
 	}
 	
+	
+	/**
+	 * Create a VM and connect her to the dispatcher.
+	 * 
+	 * @param rdmop
+	 * @param connectorClass
+	 * @throws Exception
+	 */
 	private void createVmAndConnect (
 				RequestDispatcherManagementOutboundPort rdmop,
 				Class<?> connectorClass
@@ -390,6 +421,13 @@ implements	AdmissionControllerServicesI,
 		// --------------------------------------------------------------------
 	}
 	
+	/**
+	 * Create a Dispatcher and connect him with a request generator
+	 * 
+	 * @param rgrsobp
+	 * @param RgRequestNotificationInboundPortURI
+	 * @throws Exception
+	 */
 	private void createRequestDispatcherAndConnect (
 							RequestSubmissionOutboundPort rgrsobp,
 							String RgRequestNotificationInboundPortURI
@@ -437,6 +475,18 @@ implements	AdmissionControllerServicesI,
 		// --------------------------------------------------------------------
 	}
 	
+	
+	/**
+	 * 
+	 * 
+	 * @param connectorCanonicalClassName
+	 * @param connectorSuperclass
+	 * @param connectorImplementedInterface
+	 * @param offeredInterface
+	 * @param methodNamesMap
+	 * @return
+	 * @throws Exception
+	 */
 	public Class<?> makeConnectorClassJavassist(String connectorCanonicalClassName, Class<?> connectorSuperclass,
 			Class<?> connectorImplementedInterface, Class<?> offeredInterface, HashMap<String,String> methodNamesMap
 			) throws Exception
@@ -491,6 +541,9 @@ implements	AdmissionControllerServicesI,
 
 
 
+	/* 
+	 * @see fr.upmc.datacenter.hardware.computers.interfaces.ComputerStateDataConsumerI#acceptComputerStaticData(java.lang.String, fr.upmc.datacenter.hardware.computers.interfaces.ComputerStaticStateI)
+	 */
 	@Override
 	public void acceptComputerStaticData(String computerURI,
 			ComputerStaticStateI staticState) throws Exception {
@@ -500,6 +553,9 @@ implements	AdmissionControllerServicesI,
 
 
 
+	/* 
+	 * @see fr.upmc.datacenter.hardware.computers.interfaces.ComputerStateDataConsumerI#acceptComputerDynamicData(java.lang.String, fr.upmc.datacenter.hardware.computers.interfaces.ComputerDynamicStateI)
+	 */
 	@Override
 	public void acceptComputerDynamicData(String computerURI,
 		ComputerDynamicStateI cds) throws Exception {

@@ -6,7 +6,7 @@ import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI;
 
 /**
- * The class <code>RequestGeneratorManagementOutboundPort</code> implements the
+ * The class <code>RequestDispactherManagementOutboundPort</code> implements the
  * outbound port through which one calls the component management methods.
  *
  * <p><strong>Description</strong></p>
@@ -17,9 +17,10 @@ import fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI;
  * invariant	true
  * </pre>
  * 
- * <p>Created on : 5 mai 2015</p>
+ * <p>Created on : 15 novembre 2016</p>
  * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author	<a href="mailto:morvanlassauzay@gmail.com">Morvan Lassauzay</a>
+ * @author  <a href="mailto:victor.nea@gmail.com">Victor Nea</a>
  * @version	$Name$ -- $Revision$ -- $Date$
  */
 public class			RequestDispatcherManagementOutboundPort
@@ -45,6 +46,9 @@ implements	RequestDispatcherManagementI
 		assert	uri != null && owner != null ;
 	}
 
+	/* 
+	 * @see fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI#addRequestReceiver(java.lang.String, fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort)
+	 */
 	@Override
 	public void addRequestReceiver(
 			final String requestSubmissionInboundPortURI, 
@@ -54,6 +58,9 @@ implements	RequestDispatcherManagementI
 							addRequestReceiver(requestSubmissionInboundPortURI, rnop);
 	}
 	
+	/* 
+	 * @see fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI#addRequestReceiver(java.lang.String, fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort, java.lang.Class)
+	 */
 	@Override
 	public void addRequestReceiver(
 			final String requestSubmissionInboundPortURI, 

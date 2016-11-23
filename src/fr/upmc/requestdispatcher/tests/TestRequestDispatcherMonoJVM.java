@@ -32,8 +32,8 @@ import fr.upmc.requestdispatcher.connectors.RequestDispatcherManagementConnector
 import fr.upmc.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
 
 /**
- * The class <code>TestRequestGenerator</code> deploys a test application for
- * request generation in a single JVM (no remote execution provided) for a data
+ * The class <code>TestRequestDispatcherMonoJVM</code> deploys a test application for
+ * request dispatcher in a single JVM (no remote execution provided) for a data
  * center simulation.
  *
  * <p><strong>Description</strong></p>
@@ -46,10 +46,11 @@ import fr.upmc.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
  * implementation of this simulation.
  *  
  * This test creates one computer component with two processors, each having
- * two cores. It then creates an AVM and allocates it all four cores of the
- * two processors of this unique computer. A request generator component is
- * then created and linked to the application virtual machine.  The test
- * scenario starts the request generation, wait for a specified time and then
+ * two cores. It then creates to AVMs and allocates them all four cores of the
+ * two processors of this unique computer. A request dispatcher component is
+ * then created and linked to the application virtual machine and A request 
+ * generator component is then created and linked to the application request dispatcher.
+ * The test scenario starts the request generation, wait for a specified time and then
  * stops the generation. The overall test allots sufficient time to the
  * execution of the application so that it completes the execution of all the
  * generated requests.
@@ -63,9 +64,10 @@ import fr.upmc.requestdispatcher.ports.RequestDispatcherManagementOutboundPort;
  * invariant	true
  * </pre>
  * 
- * <p>Created on : 5 mai 2015</p>
+ * <p>Created on : 15 novembre 2016</p>
  * 
- * @author	<a href="mailto:Jacques.Malenfant@lip6.fr">Jacques Malenfant</a>
+ * @author	<a href="mailto:morvanlassauzay@gmail.com">Morvan Lassauzay</a>
+ * @author  <a href="mailto:victor.nea@gmail.com">Victor Nea</a>
  * @version	$Name$ -- $Revision$ -- $Date$
  */
 public class			TestRequestDispatcherMonoJVM
@@ -118,7 +120,7 @@ extends		AbstractCVM
 	 *  vm with request dispatcher											*/
 	protected RequestDispatcherManagementOutboundPort	rdmop ;
 	/** Port of the request dispatcher component used to send end of
-	 *  execution notifications to the request generator component.		*/
+	 *  execution notifications to the request generator component.			*/
 	protected RequestNotificationOutboundPort			rdnobp ;
 	/** Port of the request generator component used to send request
 	 *  to the request dispatcher component.								*/
@@ -274,6 +276,7 @@ extends		AbstractCVM
 									  RdRequestNotificationInboundPortURI);
 		this.addDeployedComponent(rd) ;
 		
+		// Create a mock up port to manage the AVM component (connect request receiver).
 		this.rdmop = new RequestDispatcherManagementOutboundPort(
 									RequestDispatcherManagementOutboundPortURI,
 									new AbstractComponent() {}) ;

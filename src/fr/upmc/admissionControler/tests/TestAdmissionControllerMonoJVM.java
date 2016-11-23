@@ -131,7 +131,7 @@ extends		AbstractCVM
 			
 			this.addDeployedComponent(computers[c]) ;
 			
-			ac.connectComputer( ComputerURIPrefix + c,
+			acsop.connectComputer( ComputerURIPrefix + c,
 								ComputerServicesInboundPortURIPrefix + c, 
 								ComputerStaticStateDataInboundPortURIPrefix + c, 
 								ComputerDynamicStateDataInboundPortURIPrefix + c);
@@ -212,33 +212,20 @@ extends		AbstractCVM
 	 */
 	public void			testScenario() throws Exception
 	{
-		//Thread.sleep(1000L) ;
 		for (int i = 0 ; i < NUMBER_OF_APPLICATIONS ; i++) {
 			createRequestGenerator();
 			
-			this.acsop.submitApplication(
+			// test if the data center accept the submission of the application
+			if (this.acsop.submitApplication(
 				(RequestSubmissionOutboundPort) this.rgs.get(i).
 					findPortFromURI(RgRequestSubmissionOutboundPortURIPrefix + i),
-				RgRequestNotificationInboundPortURIPrefix + i);
-			
-			// If rgs is connected with request dispatcher so admission is OK
-			boolean connected = false;
-			int j = 0;
-			while( !connected  &&  j < 10 ){
-				if (this.rgs.get(i).
-						findPortFromURI(RgRequestSubmissionOutboundPortURIPrefix + i).
-																		connected()){ 
-					connected = true;
-					// start the request generation in the request generator.
-					this.rgs.get(i).startGeneration() ;
-				}
-				else{
-					Thread.sleep(500);
-				}
-				j++;
+				RgRequestNotificationInboundPortURIPrefix + i)) 
+			{	
+				// start the request generation in the request generator.
+				this.rgs.get(i).startGeneration() ;
 			}
 			
-			Thread.sleep(5000L) ;
+			Thread.sleep(3000L) ;
 		}
 		
 		for (int i = 0 ; i < NUMBER_OF_APPLICATIONS ; i++){
@@ -277,7 +264,7 @@ extends		AbstractCVM
 				}
 			}).start() ;
 			// Sleep to let the test scenario execute to completion.
-			Thread.sleep(90000L) ;
+			Thread.sleep(25000L) ;
 			// Shut down the application.
 			System.out.println("shutting down...") ;
 			trcm.shutdown() ;
