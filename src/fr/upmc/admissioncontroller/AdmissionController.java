@@ -1,4 +1,4 @@
-package fr.upmc.admissionControler;
+package fr.upmc.admissioncontroller;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -11,8 +11,8 @@ import java.util.Map.Entry;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtMethod;
-import fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI;
-import fr.upmc.admissionControler.ports.AdmissionControllerServicesInboundPort;
+import fr.upmc.admissioncontroller.interfaces.AdmissionControllerServicesI;
+import fr.upmc.admissioncontroller.ports.AdmissionControllerServicesInboundPort;
 import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.connectors.AbstractConnector;
 import fr.upmc.components.connectors.DataConnector;

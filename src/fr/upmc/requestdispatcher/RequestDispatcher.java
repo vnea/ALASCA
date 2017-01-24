@@ -19,6 +19,7 @@ import fr.upmc.datacenter.software.ports.RequestNotificationInboundPort;
 import fr.upmc.datacenter.software.ports.RequestNotificationOutboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionInboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
+import fr.upmc.requestdispatcher.interfaces.RequestDispatcherDynamicStateI;
 import fr.upmc.requestdispatcher.interfaces.RequestDispatcherManagementI;
 import fr.upmc.requestdispatcher.ports.RequestDispatcherManagementInboundPort;
 
@@ -89,7 +90,16 @@ implements	RequestNotificationHandlerI,
 	/** number of VMs connected 													*/
 	protected int numAppVm ;
 	/** number of VMs submission ports connected 									*/
-	protected int numberOfRequestSubmissionOutboundPort;
+	protected int numberOfRequestSubmissionOutboundPort ;
+	
+	
+	/** Execution time for each request 
+	 *  Linked hash map is important as we need to keep the order to do a moving average */
+	protected LinkedHashMap<String, Long> executionTimeRequest ;
+	
+	protected Double movingAverage ;
+	
+	
 	
 	// ------------------------------------------------------------------------
 	// Component constructor
@@ -177,6 +187,8 @@ implements	RequestNotificationHandlerI,
 	
 		numAppVm = 0;
 		numberOfRequestSubmissionOutboundPort = 0;
+		
+		executionTimeRequest = new LinkedHashMap<>();
 	}
 
 	// ------------------------------------------------------------------------
@@ -246,6 +258,10 @@ implements	RequestNotificationHandlerI,
 		assert	r != null ;
 		this.logMessage("Request Dispatcher " + this.dispatcherURI + " is notified that request "+ r.getRequestURI() + " has ended.") ;
 		this.requestNotificationOutboundPort.notifyRequestTermination(r) ;
+		
+		// Compute execution time for the request
+		long startedTime = executionTimeRequest.get(r.getRequestURI()) ;
+		executionTimeRequest.put(r.getRequestURI(), System.currentTimeMillis() - startedTime);
 	}
 
 	/**
@@ -256,18 +272,22 @@ implements	RequestNotificationHandlerI,
 		// Forward the current request to next VM in the list.
 		this.logMessage("Request Dispatcher " + this.dispatcherURI + " has received "+ r.getRequestURI()+".") ;
 		
-		Iterator<RequestSubmissionOutboundPort> it = this.requestSubmissionOutboundPorts.values().iterator();
-		int i = 0;
-		while (it.hasNext())
+		Iterator<RequestSubmissionOutboundPort> it = this.requestSubmissionOutboundPorts.values().iterator() ;
+		int i = 0 ;
+		boolean vmFound = false ;
+		// Found the VM which will receive the request with a Round Robin algorithm
+		while (it.hasNext() && !vmFound)
 		{
-			RequestSubmissionOutboundPort requestSubmissionOutboundPort = it.next();
-			if (i == numAppVm) {
+			RequestSubmissionOutboundPort requestSubmissionOutboundPort = it.next() ;
+			if (vmFound = (i == numAppVm)) {
+				// Here we save the started time of the requestion execution
+				executionTimeRequest.put(r.getRequestURI(), System.currentTimeMillis());
 				requestSubmissionOutboundPort.submitRequestAndNotify(r) ;
 			}
 			i++;
 		}
 		
-		numAppVm = (numAppVm + 1) % requestSubmissionOutboundPorts.size();
+		numAppVm = (numAppVm + 1) % requestSubmissionOutboundPorts.size() ;
 	}
 	
 	/* 
@@ -317,5 +337,10 @@ implements	RequestNotificationHandlerI,
 		rnop.doConnection(
 				requestNotificationInboundPort.getPortURI(),
 					RequestNotificationConnector.class.getCanonicalName()) ;
+	}
+	
+	public RequestDispatcherDynamicStateI	getDynamicState() throws Exception
+	{
+		return new RequestDispatcherDynamicState(this.dispatcherURI, movingAverage) ;
 	}
 }

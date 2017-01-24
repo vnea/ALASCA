@@ -1,15 +1,15 @@
-package fr.upmc.admissionControler.ports;
+package fr.upmc.admissioncontroller.connectors;
 
 import java.util.Map;
 
-import fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI;
-import fr.upmc.components.ComponentI;
-import fr.upmc.components.ports.AbstractOutboundPort;
+import fr.upmc.admissioncontroller.interfaces.AdmissionControllerServicesI;
+import fr.upmc.components.connectors.AbstractConnector;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
 
 /**
- * The class <code>AdmissionControllerServiceOutboundPort</code> implements an outbound
- * port requiring the <code>AdmissionControllerServicesI</code> interface.
+ * The class <code>AdmissionControllerServicesConnector</code> implements 
+ * a connector for ports exchanging through the interface 
+ * <code>AdmissionControllerServicesI</code>.
  *
  * <p><strong>Description</strong></p>
  * 
@@ -25,39 +25,25 @@ import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;
  * @author  <a href="mailto:victor.nea@gmail.com">Victor Nea</a>
  * @version	$Name$ -- $Revision$ -- $Date$
  */
-public class AdmissionControllerServicesOutboundPort 
-extends		AbstractOutboundPort
+public class AdmissionControllerServicesConnector
+extends		AbstractConnector
 implements	AdmissionControllerServicesI
 {
-	public				AdmissionControllerServicesOutboundPort(
-		ComponentI owner
-		) throws Exception
-	{
-		super(AdmissionControllerServicesI.class, owner) ;
-	}
-
-	public				AdmissionControllerServicesOutboundPort(
-		String uri,
-		ComponentI owner
-		) throws Exception
-	{
-		super(uri, AdmissionControllerServicesI.class, owner);
-	}
-
+	
 	/* 
 	 * @see fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI#submitApplication(fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort, java.lang.String)
 	 */
 	@Override
 	public boolean submitApplication(
-			RequestSubmissionOutboundPort rgrsobp,
+			RequestSubmissionOutboundPort rgsobp,
 			String RgRequestNotificationInboundPortURI
 			) throws Exception {
 		
-		return ((AdmissionControllerServicesI)this.connector).
-				submitApplication(rgrsobp, RgRequestNotificationInboundPortURI);
+		return ((AdmissionControllerServicesI)this.offering).
+				submitApplication(rgsobp, RgRequestNotificationInboundPortURI);
 	}
 
-	/* 
+	/*
 	 * @see fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI#submitApplication(java.lang.Class, java.util.Map, fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort, java.lang.String)
 	 */
 	@Override
@@ -65,17 +51,19 @@ implements	AdmissionControllerServicesI
 			Class<?> offeredInterface,
 			Map<String, String> mehtodNamesMap,
 			RequestSubmissionOutboundPort rgrsobp,
-			String RgRequestNotificationInboundPortURI) throws Exception {
+			String RgRequestNotificationInboundPortURI
+			) throws Exception {
 		
-		return ((AdmissionControllerServicesI)this.connector).
-				submitApplication(offeredInterface, 
-								  mehtodNamesMap,
-								  rgrsobp, 
-								  RgRequestNotificationInboundPortURI
-								 );
+		return ((AdmissionControllerServicesI)this.offering).
+				submitApplication(
+						offeredInterface, 
+						mehtodNamesMap,
+						rgrsobp, 
+						RgRequestNotificationInboundPortURI
+						);
 	}
 
-	/*
+	/* 
 	 * @see fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI#connectComputer(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
 	 */
 	@Override
@@ -86,13 +74,17 @@ implements	AdmissionControllerServicesI
 			String ComputerDynamicStateDataInboundPortURI)
 			throws Exception {
 		
-		((AdmissionControllerServicesI)this.connector).
-		connectComputer(ComputerURI, 
-						ComputerServicesInboundPortURI,
-						ComputerStaticStateDataInboundPortURI, 
-						ComputerDynamicStateDataInboundPortURI
-						 );
+		((AdmissionControllerServicesI)this.offering).
+		connectComputer(
+				ComputerURI, 
+				ComputerServicesInboundPortURI,
+				ComputerStaticStateDataInboundPortURI, 
+				ComputerDynamicStateDataInboundPortURI
+				);
 		
 	}
+	
+	
 
 }
+

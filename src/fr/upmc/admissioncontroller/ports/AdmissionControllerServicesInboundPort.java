@@ -1,9 +1,9 @@
-package fr.upmc.admissionControler.ports;
+package fr.upmc.admissioncontroller.ports;
 
 import java.util.Map;
 
-import fr.upmc.admissionControler.AdmissionController;
-import fr.upmc.admissionControler.interfaces.AdmissionControllerServicesI;
+import fr.upmc.admissioncontroller.AdmissionController;
+import fr.upmc.admissioncontroller.interfaces.AdmissionControllerServicesI;
 import fr.upmc.components.ComponentI;
 import fr.upmc.components.ports.AbstractInboundPort;
 import fr.upmc.datacenter.software.ports.RequestSubmissionOutboundPort;

@@ -1,4 +1,4 @@
-package fr.upmc.admissionControler.interfaces;
+package fr.upmc.admissioncontroller.interfaces;
 
 import java.util.Map;
 

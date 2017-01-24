@@ -1,4 +1,4 @@
-package fr.upmc.requestdispatcher.tests;
+package fr.upmc.tests;
 
 import java.util.HashMap;
 import java.util.HashSet;

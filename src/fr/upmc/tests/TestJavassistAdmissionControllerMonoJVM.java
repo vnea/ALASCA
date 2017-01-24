@@ -1,4 +1,4 @@
-package fr.upmc.admissionControler.tests;
+package fr.upmc.tests;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,9 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import fr.upmc.admissionControler.AdmissionController;
-import fr.upmc.admissionControler.connectors.AdmissionControllerServicesConnector;
-import fr.upmc.admissionControler.ports.AdmissionControllerServicesOutboundPort;
+import fr.upmc.admissioncontroller.AdmissionController;
+import fr.upmc.admissioncontroller.connectors.AdmissionControllerServicesConnector;
+import fr.upmc.admissioncontroller.ports.AdmissionControllerServicesOutboundPort;
 import fr.upmc.components.AbstractComponent;
 import fr.upmc.components.cvm.AbstractCVM;
 import fr.upmc.datacenter.hardware.computers.Computer;
